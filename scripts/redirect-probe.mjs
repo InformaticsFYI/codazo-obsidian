@@ -5,7 +5,7 @@
 // base URL http://127.0.0.1:4311/v1, key "PROBE-DUMMY", any model, and run a
 // review on synthetic text. Watch this process's output.
 //
-//   node scripts/obsidian-redirect-probe.mjs
+//   node scripts/redirect-probe.mjs
 //
 // Outcomes to record (A-hit / B-hit / plugin result):
 //   A hit, B hit with DUMMY BEARER FORWARDED  -> requestUrl follows redirects and forwards credentials; custom endpoints are trusted-only.
