@@ -1,0 +1,64 @@
+name: Release
+
+# Pushing a tag equal to manifest.version (for example 0.2.1) builds the
+# plugin here, publishes a GitHub release with exactly the three files
+# Obsidian installs, attests those bytes, and verifies the attestation.
+# Anyone can then run: gh attestation verify main.js -R InformaticsFYI/codazo-obsidian
+
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.18.0'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run ci
+      - name: Tag must equal manifest.version and be listed in versions.json
+        run: |
+          v=$(node -p "require('./manifest.json').version")
+          test "$GITHUB_REF_NAME" = "$v" || { echo "Tag $GITHUB_REF_NAME does not match manifest version $v"; exit 1; }
+          node -e "if(!require('./versions.json')['$v']) process.exit(1)" || { echo "versions.json lacks $v"; exit 1; }
+      - name: Release notes from CHANGELOG.md plus checksums
+        run: |
+          node -e "
+            const fs=require('fs'); const v=process.argv[1];
+            const log=fs.readFileSync('CHANGELOG.md','utf8'); const m=log.split(/^## /m).find(s=>s.startsWith(v+'\\n'));
+            const body=m? m.slice(m.indexOf('\\n')+1).trim() : 'Codazo for Obsidian '+v+'.';
+            const r=JSON.parse(fs.readFileSync('dist/RELEASE.json','utf8'));
+            const sums=Object.entries(r.hashes).map(([f,h])=>'- '+f+': '+h).join('\\n');
+            fs.writeFileSync('dist/NOTES.md', body+'\\n\\nInstall from Obsidian\\'s Community plugins, or copy main.js, manifest.json, and styles.css into .obsidian/plugins/codazo/. Third-party license texts are inside main.js and in NOTICE.md.\\n\\nSHA-256\\n'+sums+'\\n\\nProvenance: attested by this repository\\'s Release workflow; verify with gh attestation verify main.js -R '+process.env.GITHUB_REPOSITORY+'.');
+          " "$GITHUB_REF_NAME"
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/main.js dist/manifest.json dist/styles.css --title "Codazo $GITHUB_REF_NAME" --notes-file dist/NOTES.md
+      - name: Attest the released bytes
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/main.js
+            dist/styles.css
+            dist/manifest.json
+      - name: Verify the attestations against the published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p readback && cd readback
+          gh release download "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --pattern 'main.js' --pattern 'manifest.json' --pattern 'styles.css'
+          for f in main.js manifest.json styles.css; do
+            test "$(sha256sum "$f" | cut -d' ' -f1)" = "$(sha256sum "../dist/$f" | cut -d' ' -f1)" || { echo "$f differs from the build"; exit 1; }
+            gh attestation verify "$f" -R "$GITHUB_REPOSITORY"
+          done
