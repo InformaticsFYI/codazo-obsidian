@@ -85,7 +85,8 @@
 .codazo-mark-vocab { border-bottom-color: var(--color-yellow); background: color-mix(in srgb, var(--color-yellow) 18%, transparent); }
 .codazo-mark-alternative { border-bottom-style: dotted; border-bottom-color: var(--color-green); background: color-mix(in srgb, var(--color-green) 12%, transparent); }
 
-@media (prefers-reduced-motion: reduce) { .codazo-pane * { transition: none !important; animation: none !important; } }
+/* Reduced motion: the only animated pieces are the chevron and the spinner, so target them directly instead of a blanket rule. */
+@media (prefers-reduced-motion: reduce) { .codazo-pane .codazo-accordion-title::before { transition: none; } .codazo-pane .codazo-spinner { animation: none; } }
 
 /* Pane tabs and the saved-items index. */
 .codazo-tabs { display: flex; gap: var(--size-4-1); margin: var(--size-4-2) 0; border-bottom: 1px solid var(--background-modifier-border); }

@@ -1,3 +1,2 @@
 node_modules/
-apps/obsidian/dist/
-apps/obsidian/dist-meta.json
+dist/

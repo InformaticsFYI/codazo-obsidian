@@ -1,0 +1,171 @@
+{
+  "schema_version": "codazo.review/1",
+  "source": {
+    "text": "Ayer yo camino al parque. El arbol es bonito. La casa son grande. Quiero tomar un café.",
+    "mode": "spanish_only"
+  },
+  "annotations": [
+    {
+      "id": "a-verb",
+      "anchor": {
+        "quote": "camino",
+        "occurrence": 1
+      },
+      "category": "verb",
+      "notice": "Look at the time word ayer.",
+      "question": "Is this happening now or yesterday?",
+      "hint": "Yesterday is a finished past time.",
+      "explanation": "For this completed walk yesterday, use the preterite.",
+      "suggestion": {
+        "kind": "correction",
+        "text": "caminé",
+        "lexical_change": {
+          "status": "none"
+        }
+      },
+      "retry_focus": "Write another short sentence about yesterday."
+    },
+    {
+      "id": "a-spelling",
+      "anchor": {
+        "quote": "arbol",
+        "occurrence": 1
+      },
+      "category": "spelling",
+      "notice": "Look at the written accent.",
+      "question": "Which syllable is stressed?",
+      "hint": "Say the word aloud: which part sounds strongest?",
+      "explanation": "Árbol is stressed on the next-to-last syllable and ends in l, so it needs a written accent: ÁR-bol.",
+      "suggestion": {
+        "kind": "correction",
+        "text": "árbol",
+        "lexical_change": {
+          "status": "none"
+        }
+      },
+      "retry_focus": "Try writing árbol in your own sentence."
+    },
+    {
+      "id": "a-grammar",
+      "anchor": {
+        "quote": "La casa son",
+        "occurrence": 1
+      },
+      "category": "grammar",
+      "notice": "Notice the subject and verb together.",
+      "question": "Is casa singular or plural?",
+      "hint": "One house needs a singular verb.",
+      "explanation": "La casa is singular, so es agrees with it.",
+      "suggestion": {
+        "kind": "correction",
+        "text": "La casa es",
+        "lexical_change": {
+          "status": "none"
+        }
+      },
+      "retry_focus": "Try describing one other place."
+    },
+    {
+      "id": "a-alternative",
+      "anchor": {
+        "quote": "Quiero tomar",
+        "occurrence": 1
+      },
+      "category": "alternative",
+      "notice": "Here is an optional softer way to say this.",
+      "question": "Would you like a softer tone?",
+      "hint": "Gustaría can express a polite wish.",
+      "explanation": "Your wording works. This alternative is a more indirect way to express the wish.",
+      "suggestion": {
+        "kind": "optional_alternative",
+        "text": "Me gustaría tomar",
+        "lexical_change": {
+          "status": "introduced",
+          "items": [
+            {
+              "expression": "me gustaría",
+              "meaning": "I would like",
+              "reason": "Optional softer expression for the same wish."
+            }
+          ]
+        }
+      },
+      "retry_focus": "Try either expression in a short café request."
+    }
+  ],
+  "strengths": [
+    {
+      "id": "s-time",
+      "anchor": {
+        "quote": "Ayer",
+        "occurrence": 1
+      },
+      "text": "Ayer makes the time of your story clear."
+    }
+  ],
+  "next_focus": [
+    {
+      "id": "f-past",
+      "anchor": {
+        "quote": "camino",
+        "occurrence": 1
+      },
+      "text": "Practice one completed action in the past."
+    }
+  ],
+  "vocabulary": [
+    {
+      "id": "v-parque",
+      "kind": "word_or_phrase",
+      "anchor": {
+        "quote": "parque",
+        "occurrence": 1
+      },
+      "expression": "parque",
+      "meaning": "park",
+      "reason": "A place in your own sentence.",
+      "is_new": false,
+      "examples": [
+        "El parque es grande."
+      ]
+    }
+  ],
+  "verbs": [
+    {
+      "id": "verb-caminar",
+      "kind": "verb_focus",
+      "anchor": {
+        "quote": "camino",
+        "occurrence": 1
+      },
+      "infinitive": "caminar",
+      "meaning": "to walk",
+      "reason": "Your story places this walk yesterday.",
+      "tenses": [
+        {
+          "id": "preterite",
+          "name": "Pretérito (perfecto simple)",
+          "use": "A completed past action.",
+          "conjugation": {
+            "status": "unavailable",
+            "reason": "Full verified paradigm tables are not in the local reference yet."
+          }
+        }
+      ]
+    }
+  ],
+  "exercises": [
+    {
+      "id": "ex-past",
+      "kind": "fill_blank",
+      "anchor": {
+        "quote": "camino",
+        "occurrence": 1
+      },
+      "prompt": "Complete with caminar: Ayer yo ___ por el centro.",
+      "hint": "Use the yo form for a completed past action.",
+      "answer": "caminé",
+      "explanation": "Caminé places this walk in the completed past."
+    }
+  ]
+}

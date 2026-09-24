@@ -1,6 +1,6 @@
 # Third-party notices
 
-Codazo for Obsidian is licensed under the Apache License 2.0 (see LICENSE). The release bundle `main.js` includes the following packages under their own licenses, reproduced here in full as required.
+Codazo for Obsidian is licensed under the Apache License 2.0 (see LICENSE). The release bundle `main.js` includes the following packages under their own licenses, reproduced in full here and in the comment at the top of `main.js`.
 
 ## @jirimracek/conjugate-esp 2.3.6 (MIT)
 
@@ -263,4 +263,4 @@ SOFTWARE.
 
 ## Spanish conjugation reference data
 
-See packages/shared/data/language/PROVENANCE.md and conjugation-licenses.json in this repository.
+See shared/data/language/PROVENANCE.md and conjugation-licenses.json.

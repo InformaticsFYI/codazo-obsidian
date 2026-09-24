@@ -1,12 +1,23 @@
 {
-  "name": "codazo-obsidian",
-  "version": "0.2.0",
+  "name": "codazo",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "Learner-controlled Spanish writing review and study over the notes you already own. Explicit review only; your original text is never rewritten.",
+  "description": "Codazo for Obsidian: learner-controlled Spanish writing review and study over the notes you already own.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/InformaticsFYI/codazo-obsidian.git"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.18.0 <25"
+  },
   "scripts": {
-    "build": "node apps/obsidian/scripts/build.mjs",
-    "typecheck": "tsc --noEmit -p apps/obsidian/tsconfig.json"
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src shared tests",
+    "test": "vitest run",
+    "ci": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@jirimracek/conjugate-esp": "2.3.6",
@@ -15,12 +26,14 @@
   "devDependencies": {
     "@codemirror/state": "6.5.0",
     "@codemirror/view": "6.38.6",
+    "@types/node": "24.13.3",
+    "esbuild": "0.28.1",
+    "eslint": "10.10.0",
+    "eslint-plugin-obsidianmd": "0.4.2",
+    "jsdom": "30.0.1",
     "obsidian": "1.13.1",
     "server-only": "0.0.1",
-    "esbuild": "0.28.1",
-    "typescript": "6.0.3"
-  },
-  "engines": {
-    "node": ">=24.18.0 <25"
+    "typescript": "6.0.3",
+    "vitest": "5.0.0"
   }
 }

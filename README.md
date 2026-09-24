@@ -1,10 +1,8 @@
 # Codazo for Obsidian
 
-This repository is the published source of the Codazo Obsidian plugin. Each release exports the plugin source, the shared modules it uses, and the built `main.js` here.
-
 A vault-native Obsidian community plugin. The vault is the library, Markdown is the durable format, and Obsidian stays the writing environment. Codazo adds an explicit, learner-controlled review and study layer over notes the learner already owns: select a Spanish passage, confirm exactly what will be sent, read source-bound feedback in a side pane, and choose whether to keep anything.
 
-Status: released in Obsidian's community plugin directory as `codazo` (https://community.obsidian.md/plugins/codazo), desktop-only (`isDesktopOnly: true`). Development happens in the private Codazo monorepo; each release is exported to `InformaticsFYI/codazo-obsidian` by a manual workflow. Mobile will follow once it has been verified on real devices.
+Status: released in Obsidian's community plugin directory as `codazo` (https://community.obsidian.md/plugins/codazo), desktop-only (`isDesktopOnly: true`). This repository is the plugin's home: development, issues, pull requests, and releases happen here. Mobile will follow once it has been verified on real devices.
 
 ## What it does
 
@@ -28,31 +26,38 @@ Status: released in Obsidian's community plugin directory as `codazo` (https://c
 - Optionally, one note per word under `Palabras/` and one per verb and tense under `Verbos/` (named `infinitivo · tiempo`, with the deterministic conjugation table), created after every review or study guide, or on demand from the pane. Each carries `codazo-progreso` (`nuevo`, `con-problemas`, `necesita-trabajo`, `casi-listo`, `dominado`) for the learner to edit; existing notes are never touched. These are the notes a future flash-card or conjugation drill would read.
 - A saved review carries the validated payload in a fenced `json codazo-review` block. **Codazo: Load saved review from current note** re-validates it before showing it; a payload that fails validation is refused.
 - The plugin's own text (commands, menu, settings, modal, pane, notices) can be shown in Spanish (default) or English from a setting. Codazo's output is unaffected: the review contract, prompts, saved notes, and exports stay as they are.
-- No telemetry, no account, no whole-vault indexing, no background reading of notes. Saved notes written by the plugin are literal text: model-generated prose is escaped so it cannot embed images, links, or HTML when a note renders.
+- No telemetry, no Codazo account, no whole-vault indexing, no background reading of notes. AI features use your own provider account and key (OpenAI, Ollama Cloud, or an OpenAI-compatible endpoint such as OpenRouter or a local server); provider charges and data policies apply to what you send. Saved notes written by the plugin are literal text: model-generated prose is escaped so it cannot embed images, links, or HTML when a note renders.
 
-## Build and install
+## Install
+
+From Obsidian: **Settings › Community plugins › Browse**, search for **Codazo**, Install, then Enable. Or copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/InformaticsFYI/codazo-obsidian/releases) into `<vault>/.obsidian/plugins/codazo/`. Each release is attested; verify with `gh attestation verify main.js -R InformaticsFYI/codazo-obsidian`.
+
+## Develop
 
 ```sh
 npm ci
+npm run lint       # Obsidian's community-plugin validator rules
 npm run typecheck
-npm run build          # apps/obsidian/dist/{main.js,manifest.json,styles.css} plus a composition and hash report
+npm test
+npm run build      # dist/main.js, manifest.json, styles.css, RELEASE.json; regenerates NOTICE.md
 ```
 
-Install from Obsidian: Settings › Community plugins › Browse › search **Codazo** › Install, then Enable. Or copy `main.js`, `manifest.json`, and `styles.css` from a release (or from `apps/obsidian/dist/`) into `<vault>/.obsidian/plugins/codazo/`.
+Branch from `dev` and open pull requests against `dev`; see [CONTRIBUTING.md](CONTRIBUTING.md). The build uses esbuild with `platform: browser`, leaves `obsidian` and `@codemirror/*` external, and embeds every bundled package's license text at the top of `main.js`.
 
 ## Disclosures
 
-- **Network.** The plugin makes a network request only when you confirm a review, study guide, or excerpt, and only to the provider profile you chose. There is no telemetry and no Codazo server.
-- **Accounts and cost.** You bring your own provider account and key (OpenAI, Ollama Cloud, or any OpenAI-compatible endpoint). Your provider's billing, rate limits, and data policies apply to what you send.
+- **Accounts and access.** No Codazo account is required. To use AI-powered reviews, study guides, and excerpt explanations through a hosted service such as the OpenAI API or Ollama Cloud, you need that provider's account and an API key with access to your chosen model; provider charges may apply. A local OpenAI-compatible server can be used instead, and its authentication requirements depend on the server.
+- **Network use.** Codazo sends the text and optional English intent shown in the confirmation dialog, together with Codazo's review instructions and your profile's settings, directly to the provider you selected, to generate feedback or explanations. Supported destinations are OpenAI, Ollama Cloud, and a custom OpenAI-compatible endpoint such as OpenRouter or a local server. Requests happen only after your confirmation. There is no Codazo intermediary server and no telemetry.
 - **Keys.** Stored in Obsidian's Secret Storage (encrypted by the operating system; Linux needs a supported keyring) or kept in memory for the session. Codazo verifies that Secret Storage is actually encrypting before offering persistent storage and refuses it otherwise. Secret Storage is shared by all plugins in Obsidian; it protects storage, not the running process.
 - **Custom endpoints.** Requests never follow redirects: a redirecting endpoint fails before the key or text is forwarded. Plain HTTP is allowed to local and private-network servers and carries the key unencrypted on that network.
 - **Storage.** Saved notes are ordinary unencrypted Markdown in your vault and sync like the rest of it.
-- **Platform.** This release is desktop-only. Mobile support will follow once it has been verified on real devices.
+- **Platform.** Desktop only for now. Mobile support will follow once it has been verified on real devices.
 
-## Shared and plugin-only code
+## Layout
 
-- Shared from `packages/shared/lib`: review contract and validation, anchor resolution, the OpenAI-compatible provider adapter, the local review service, provider-settings rules and the local settings store, export serializers, and the conjugation reference.
-- Plugin-only in `src/`: the `requestUrl` transport shim, Secret Storage vault, plugin data, session and stale-source logic, vault artifact builders and validation, the CodeMirror decoration extension, the pane, modal, and settings tab.
+- `src/` — the plugin: the `requestUrl`-free Node transport, Secret Storage vault and encryption canary, plugin data, session and stale-source logic, vault artifact builders and validation, the CodeMirror decoration extension, the pane, modal, and settings tab.
+- `shared/` — the review contract and validation, anchor resolution, the OpenAI-compatible provider adapter, the local review service, provider-settings rules, export serializers, and the conjugation reference. Shared with other Codazo applications and kept portable.
+- `tests/` — Vitest suites with synthetic fixtures; never real learner writing or credentials.
 
 ## Not in this release
 

@@ -1,0 +1,49 @@
+name: CI
+
+# Every pull request to dev or main, and every push to those branches:
+# validator lint, typecheck, tests, and a build whose dist/ is uploaded so
+# reviewers can install the exact candidate in a test vault.
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.18.0'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Manifest and versions agree
+        run: |
+          v=$(node -p "require('./manifest.json').version"); m=$(node -p "require('./manifest.json').minAppVersion")
+          test "$(node -p "require('./versions.json')['$v']")" = "$m" || { echo "versions.json must map $v to $m"; exit 1; }
+          test "$(node -p "require('./package.json').version")" = "$v" || { echo "package.json version must be $v"; exit 1; }
+          git diff --exit-code -- NOTICE.md || { echo "NOTICE.md is stale; run npm run build and commit it"; exit 1; }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: codazo-${{ github.sha }}
+          path: |
+            dist/main.js
+            dist/manifest.json
+            dist/styles.css
+            dist/RELEASE.json
+          if-no-files-found: error
