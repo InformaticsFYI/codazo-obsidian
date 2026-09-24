@@ -4,8 +4,8 @@ Codazo helps you improve your written Spanish inside your own notes. Select a pa
 
 Codazo never edits the note you asked it to review. Your writing stays yours.
 
-> [!info]+ You bring your own AI provider
-> Codazo has no account and no server of its own. To get feedback, you connect an account and API key from OpenAI, Ollama Cloud, or any OpenAI-compatible service, including a local model running on your computer. The provider's charges and privacy terms apply to the text you send. See [[#Disclosures]] below.
+> [!NOTE]
+> **You bring your own AI provider.** Codazo has no account and no server of its own. To get feedback, you connect an account and API key from OpenAI, Ollama Cloud, or any OpenAI-compatible service, including a local model running on your computer. The provider's charges and privacy terms apply to the text you send. See [Disclosures](#disclosures) below.
 
 ## What you can do
 
@@ -55,8 +55,8 @@ Codazo works on Obsidian desktop (1.11.5 or newer). Mobile support will follow o
 - One request at a time. If the provider fails or returns something that does not fit Codazo's review format, you see an error. Codazo never retries silently, switches providers, or shows sample text as if it were feedback.
 - Model-written text saved into notes is escaped, so it cannot embed images, links, or HTML when a note renders.
 
-> [!tip]- Using a local model
-> Local servers such as LM Studio often reject the `json_object` response format. Choose `json_schema` and set a maximum token count in the profile. Small non-reasoning models have worked well; reasoning models may think for minutes and time out.
+> [!TIP]
+> **Using a local model.** Local servers such as LM Studio often reject the `json_object` response format. Choose `json_schema` and set a maximum token count in the profile. Small non-reasoning models have worked well; reasoning models may think for minutes and time out.
 
 ## Develop
 
