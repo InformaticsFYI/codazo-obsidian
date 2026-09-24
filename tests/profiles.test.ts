@@ -8,6 +8,9 @@ import { ProfileStore, profileLabel, validateCustomURL } from '../src/profiles';
 import { createSecretVault, migrateLegacyProvider, parsePluginData, profileSecretId, recordPersistence, type PluginData, type SecretStorageLike } from '../src/settings';
 import { createRequestUrlFetch, type RequestUrlLike } from '../src/transport';
 
+/** Configuration-only assertions never reach the transport. */
+const unusedFetch = () => Promise.reject(new Error('unused'));
+
 const fixture = JSON.parse(readFileSync('tests/fixtures/valid-codazo-v1.json', 'utf8')) as Review;
 const { source, ...feedback } = fixture;
 const request = { schema_version: 'codazo.request/1', request_id: 'f3f6a7c0-1111-4222-8333-444455556666', revision: 0, source, level: 'A2', locale: 'es-MX' };
@@ -66,9 +69,9 @@ test('custom URLs: https anywhere, http only for loopback or private hosts, noth
 
 test('the shared provider refuses http unless the local target opts in for a private host', () => {
   const config = { apiKey: 'k', model: 'm', maxOutputTokens: 256, timeoutMs: 1000 };
-  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://localhost:11434/v1' })).toThrow('INVALID_CONFIG');
-  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://localhost:11434/v1', allowPrivateHttp: true })).not.toThrow();
-  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://example.com/v1', allowPrivateHttp: true })).toThrow('INVALID_CONFIG');
+  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://localhost:11434/v1' }, unusedFetch)).toThrow('INVALID_CONFIG');
+  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://localhost:11434/v1', allowPrivateHttp: true }, unusedFetch)).not.toThrow();
+  expect(() => createOpenAICompatibleProvider({ ...config, baseURL: 'http://example.com/v1', allowPrivateHttp: true }, unusedFetch)).toThrow('INVALID_CONFIG');
 });
 
 test('a custom profile with a bad URL or a persistent key without Secret Storage is refused', async () => {
@@ -108,6 +111,6 @@ test('a profile may raise the provider timeout up to five minutes; stored profil
   await expect(w.store.save({ id: 'a', provider: 'openai', ...base, timeoutSeconds: 600 })).rejects.toThrow('INVALID_PROFILE');
   await w.store.save({ id: 'b', provider: 'openai', ...base }, 'K');
   expect(w.store.get('b')?.timeoutSeconds).toBe(40);
-  expect(() => createOpenAICompatibleProvider({ baseURL: 'https://api.openai.com/v1', apiKey: 'k', model: 'm', maxOutputTokens: 256, timeoutMs: 300_000 })).not.toThrow();
-  expect(() => createOpenAICompatibleProvider({ baseURL: 'https://api.openai.com/v1', apiKey: 'k', model: 'm', maxOutputTokens: 256, timeoutMs: 300_001 })).toThrow('INVALID_CONFIG');
+  expect(() => createOpenAICompatibleProvider({ baseURL: 'https://api.openai.com/v1', apiKey: 'k', model: 'm', maxOutputTokens: 256, timeoutMs: 300_000 }, unusedFetch)).not.toThrow();
+  expect(() => createOpenAICompatibleProvider({ baseURL: 'https://api.openai.com/v1', apiKey: 'k', model: 'm', maxOutputTokens: 256, timeoutMs: 300_001 }, unusedFetch)).toThrow('INVALID_CONFIG');
 });

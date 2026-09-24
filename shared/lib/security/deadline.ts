@@ -9,7 +9,7 @@ export function createDeadline(milliseconds: number, parent?: AbortSignal) {
   const cancel = () => { code = parent?.reason instanceof BoundaryError ? parent.reason.code : 'CANCELLED'; controller.abort(new BoundaryError(code)); };
   if (parent?.aborted) cancel();
   else parent?.addEventListener('abort', cancel, { once: true });
-  const timer = setTimeout(() => controller.abort(new BoundaryError('TIMEOUT')), milliseconds);
+  const timer = window.setTimeout(() => controller.abort(new BoundaryError('TIMEOUT')), milliseconds);
   return {
     signal: controller.signal,
     async wait<T>(operation: () => Promise<T>): Promise<T> {
@@ -28,6 +28,6 @@ export function createDeadline(milliseconds: number, parent?: AbortSignal) {
         return value;
       } finally { controller.signal.removeEventListener('abort', rejectAbort); }
     },
-    close() { clearTimeout(timer); parent?.removeEventListener('abort', cancel); },
+    close() { window.clearTimeout(timer); parent?.removeEventListener('abort', cancel); },
   };
 }
