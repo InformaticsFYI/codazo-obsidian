@@ -4,7 +4,7 @@ This repository is the published source of the Codazo Obsidian plugin. Each rele
 
 A vault-native Obsidian community plugin. The vault is the library, Markdown is the durable format, and Obsidian stays the writing environment. Codazo adds an explicit, learner-controlled review and study layer over notes the learner already owns: select a Spanish passage, confirm exactly what will be sent, read source-bound feedback in a side pane, and choose whether to keep anything.
 
-Status: pre-release, desktop-only (`isDesktopOnly: true`). Development happens in the private Codazo monorepo; releases are exported to `InformaticsFYI/codazo-obsidian` by a manual workflow. It has not been submitted to the Community Plugins directory, and `codazo` is a candidate plugin ID, not a reserved one. The code avoids Node, Electron, and filesystem imports so mobile can follow once it has been verified on real devices.
+Status: released in Obsidian's community plugin directory as `codazo` (https://community.obsidian.md/plugins/codazo), desktop-only (`isDesktopOnly: true`). Development happens in the private Codazo monorepo; each release is exported to `InformaticsFYI/codazo-obsidian` by a manual workflow. Mobile will follow once it has been verified on real devices.
 
 ## What it does
 
@@ -38,7 +38,7 @@ npm run typecheck
 npm run build          # apps/obsidian/dist/{main.js,manifest.json,styles.css} plus a composition and hash report
 ```
 
-Install by copying `main.js`, `manifest.json`, and `styles.css` from a release (or from `apps/obsidian/dist/`) into `<vault>/.obsidian/plugins/codazo/`, then enable **Codazo** under Settings › Community plugins. Use a test vault first.
+Install from Obsidian: Settings › Community plugins › Browse › search **Codazo** › Install, then Enable. Or copy `main.js`, `manifest.json`, and `styles.css` from a release (or from `apps/obsidian/dist/`) into `<vault>/.obsidian/plugins/codazo/`.
 
 ## Disclosures
 
@@ -56,4 +56,4 @@ Install by copying `main.js`, `manifest.json`, and `styles.css` from a release (
 
 ## Not in this release
 
-Cumulative mastery, notebook challenges, an offline dictionary, mobile Obsidian, and Community Plugins directory listing.
+Cumulative mastery, notebook challenges, an offline dictionary, and mobile Obsidian.
