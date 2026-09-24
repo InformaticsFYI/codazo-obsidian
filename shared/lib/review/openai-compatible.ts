@@ -101,8 +101,11 @@ const EnvelopeSchema = z.object({
 });
 const feedbackJSONSchema = z.toJSONSchema(FeedbackSchema);
 
+/** The host supplies the transport; Obsidian desktop passes the Node http client, never a webview fetch. */
+export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
+
 /** Server-configured only. Never construct from request-supplied configuration. */
-export function createOpenAICompatibleProvider(configuration: OpenAICompatibleConfig, fetchImpl: typeof fetch = fetch): LiveReviewProvider {
+export function createOpenAICompatibleProvider(configuration: OpenAICompatibleConfig, fetchImpl: FetchLike): LiveReviewProvider {
   let config: OpenAICompatibleConfig;
   let endpoint: string;
   try {

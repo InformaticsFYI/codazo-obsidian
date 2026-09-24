@@ -3,7 +3,7 @@ import { REVIEW_POLICY, type ReviewPolicy } from './prompt';
 import { ReviewRequestSchema } from '../security/input-limits';
 import { inspectJSONValue, LIMITS } from './limits';
 import { validateReview, validateSource } from './validate';
-import type { OpenAICompatibleConfig } from './openai-compatible';
+import type { FetchLike, OpenAICompatibleConfig } from './openai-compatible';
 
 /** Whatever holds the learner's provider configuration in the app's one trusted process. */
 export interface ReviewSettingsSource { snapshot(): Promise<OpenAICompatibleConfig> }
@@ -23,8 +23,8 @@ export class LocalReviewService {
     return null;
   }
   dispose() { this.active?.controller.abort(); }
-  /** `fetchImpl` lets a host without a usable global fetch (Obsidian's requestUrl) supply the transport; the provider still enforces its own limits. */
-  constructor(private settings: ReviewSettingsSource, private readonly fetchImpl: typeof fetch = fetch) {}
+  /** The host supplies the transport (Obsidian desktop: the Node http client); the provider still enforces its own limits. */
+  constructor(private settings: ReviewSettingsSource, private readonly fetchImpl: FetchLike) {}
   /** `policy` defaults to the full review; a host may pass a derived policy that keeps the same contract. `settings` lets a host bind one request to the exact configuration the learner confirmed. */
   async review(input: unknown, policy: ReviewPolicy = REVIEW_POLICY, settings: ReviewSettingsSource = this.settings) {
     if (inspectJSONValue(input, LIMITS.requestBytes) !== 'ok') throw new Error('INVALID_REQUEST');
