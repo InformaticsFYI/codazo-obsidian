@@ -24,13 +24,3 @@ export function reviewJson(input: unknown, revisionInput?: unknown): string {
 export function reviewHtml(input: unknown, provenance: ExportProvenance, revisionInput?: unknown): string {
   return renderFeedbackHtml(input, provenance, revisionInput);
 }
-
-export function downloadText(filename: string, content: string, type: string): void {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.download = filename;
-  anchor.href = url;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}

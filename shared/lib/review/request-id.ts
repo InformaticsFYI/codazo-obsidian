@@ -2,7 +2,7 @@
  * randomUUID is secure-context-only; getRandomValues is available on HTTP.
  * Never fall back to Math.random for request identities.
  */
-export function createRequestId(cryptoSource: Pick<Crypto, 'getRandomValues'> = globalThis.crypto): string {
+export function createRequestId(cryptoSource: Pick<Crypto, 'getRandomValues'> = crypto): string {
   const bytes = cryptoSource.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;

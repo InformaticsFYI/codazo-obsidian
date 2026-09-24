@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Shared modules follow Obsidian's plugin guidelines fully: window-scoped timers, no `globalThis`, no bare `fetch` (the host must supply the transport), and the browser-only download helper is gone. The community validator now reports no warnings.
+- CI uploads its build artifact with `actions/upload-artifact` v7.
+
 ## 0.2.1
 
 Compatibility-preserving patch. Minimum Obsidian stays 1.11.5; desktop only. Existing profiles, keys, saved notes, and settings are unchanged.
