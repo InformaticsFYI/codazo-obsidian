@@ -1,0 +1,10 @@
+{
+  "version": "0.2.0",
+  "minAppVersion": "1.11.5",
+  "files": 49,
+  "hashes": {
+    "main.js": "694fc94d9e34ab14068059249511db798ade9719c04ecb9fb04a2aaff4c8b24c",
+    "manifest.json": "b5374d968035ac64ac305e985e14aa156dce93989faa93ef4c66dc5504ec2914",
+    "styles.css": "bbdc26a6851756396fd6257020958dfad1369060c73bdd362f9a1a9a84696132"
+  }
+}

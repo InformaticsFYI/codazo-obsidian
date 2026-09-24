@@ -1,0 +1,26 @@
+{
+  "name": "codazo-obsidian",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Learner-controlled Spanish writing review and study over the notes you already own. Explicit review only; your original text is never rewritten.",
+  "scripts": {
+    "build": "node apps/obsidian/scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p apps/obsidian/tsconfig.json"
+  },
+  "dependencies": {
+    "@jirimracek/conjugate-esp": "2.3.6",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6",
+    "obsidian": "1.13.1",
+    "server-only": "0.0.1",
+    "esbuild": "0.28.1",
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": ">=24.18.0 <25"
+  }
+}

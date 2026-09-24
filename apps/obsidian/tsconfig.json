@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "types": [], "lib": ["ES2022", "DOM", "DOM.Iterable"], "jsx": "preserve", "noEmit": true },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
