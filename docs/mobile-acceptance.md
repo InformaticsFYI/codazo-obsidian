@@ -6,7 +6,7 @@ Android can install the plugin, but it is not part of this checklist. The README
 
 ## Install the test build
 
-1. On the pull request, open the latest **CI** run and download the `dist` artifact. It contains `main.js`, `manifest.json`, and `styles.css`.
+1. On the pull request, open the latest **CI** run and download the artifact named `codazo-` followed by the commit. It contains `main.js`, `manifest.json`, and `styles.css`.
 2. Put the three files in `<vault>/.obsidian/plugins/codazo/` on a desktop copy of a test vault.
 3. Get the vault to the device. With Obsidian Sync, turn on **Installed community plugins** in the Sync settings on both sides. With iCloud, copy the vault folder into Obsidian's iCloud folder from a Mac.
 4. On the device, open the vault, go to **Settings → Community plugins**, and enable **Codazo**.
