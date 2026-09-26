@@ -157,7 +157,8 @@ export function createOpenAICompatibleProvider(configuration: OpenAICompatibleCo
         return response;
       })); } catch (error) {
         if (error instanceof BoundaryError) throw error;
-        throw new OpenAICompatibleError('UPSTREAM_ERROR');
+        // The transport rejected: unreachable, refused by cross-origin rules, or a refused redirect.
+        throw new OpenAICompatibleError('UPSTREAM_ERROR', false, 'network');
       }
       if (!response.ok || response.redirected) {
         void response.body?.cancel().catch(() => {});

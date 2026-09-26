@@ -111,3 +111,4 @@
 /* Inline glosses {term|gloss}: dotted underline, translation on hover; raw text while the cursor is inside. */
 .codazo-gloss { border-bottom: 4px solid var(--color-purple); text-decoration: none; cursor: help; }
 .codazo-gloss-raw { background: color-mix(in srgb, var(--text-accent) 10%, transparent); border-radius: 2px; }
+.codazo-gloss.codazo-gloss-open::after { content: " (" attr(data-gloss) ")"; color: var(--text-muted); font-style: italic; }

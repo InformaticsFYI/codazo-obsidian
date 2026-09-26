@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Modal, Notice, Plugin, Setting, TFile, addIcon, normalizePath, requireApiVersion, setTooltip } from 'obsidian';
+import { Editor, MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, addIcon, normalizePath, requireApiVersion, setTooltip } from 'obsidian';
 import { REVIEW_EXPORT_FILENAME, REVIEW_JSON_FILENAME, reviewHtml, reviewJson } from '../shared/lib/export/download-review';
 import { LocalReviewService } from '../shared/lib/review/local-review-service';
 import { createRequestId } from '../shared/lib/review/request-id';
@@ -21,6 +21,7 @@ import { locateSource, sha256Hex, type ReviewSession, type SourceLocation } from
 import { ProfileStore, profileFingerprint, profileLabel } from './profiles';
 import { createSecretVault, migrateLegacyProvider, parsePluginData, probeSecretEncryption, profileSecretId, recordPersistence, type PluginData } from './settings-runtime';
 import { createNodeFetch } from './node-transport';
+import { createWebFetch } from './web-transport';
 import { CodazoSettingTab } from './settings-tab';
 import { setUiLanguage, t } from './strings';
 import { planStudyNotes } from './study-notes';
@@ -63,8 +64,10 @@ export default class CodazoPlugin extends Plugin {
     }
     this.profiles = new ProfileStore(recordPersistence('profiles', () => this.data, next => this.writeData(next)), id => createSecretVault(secretStorage, profileSecretId(id), webStorage), async () => secretStorage !== undefined && probeSecretEncryption(secretStorage, webStorage));
     await this.profiles.load();
-    // Desktop-only release: Node's http client never follows redirects, so a key and text can only reach the confirmed destination. No weaker fallback.
-    const transport = createNodeFetch();
+    // Neither transport follows redirects, so a key and text can only reach the confirmed destination.
+    // Desktop uses Node's http client (no cross-origin rules); iPad, iPhone, and Android use the webview's fetch with redirects refused.
+    // The choice is by platform, never by failure: a desktop without Node gets no transport rather than a switch.
+    const transport = Platform.isDesktopApp ? createNodeFetch() : createWebFetch(window);
     this.service = new LocalReviewService(this.profiles, transport ?? (async () => { throw new Error('TRANSPORT_UNAVAILABLE'); }));
     if (!transport) new Notice(t().noticeTransportUnavailable, 10000);
 
@@ -268,7 +271,7 @@ export default class CodazoPlugin extends Plugin {
       else if (this.data.autoSaveReviews) await (session.kind === 'study' ? this.saveStudyNote(session) : this.saveReviewNote(session));
       if (this.data.autoStudyNotes) await this.saveStudyItemNotes(session);
     } catch (error) {
-      this.setState({ status: { kind: 'error', message: describeError(error), label } });
+      this.setState({ status: { kind: 'error', message: describeError(error, { mobile: Platform.isMobileApp }), label } });
     } finally { this.activeRequestId = null; }
   }
 
@@ -374,6 +377,8 @@ export default class CodazoPlugin extends Plugin {
     const to = view.editor.offsetToPos(base + span.end);
     view.editor.setSelection(from, to);
     view.editor.scrollIntoView({ from, to }, true);
+    // On a phone the pane is a drawer over the note; close it so the selected phrase is visible.
+    if (Platform.isPhone) this.app.workspace.rightSplit.collapse();
   }
 
   // ----- artifacts -----
