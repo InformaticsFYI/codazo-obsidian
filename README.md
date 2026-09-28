@@ -24,7 +24,7 @@ The plugin's own interface can be shown in Spanish (default) or English. The fee
 
 1. Open **Settings → Community plugins → Browse**.
 2. Search for **Codazo**, then select **Install** and **Enable**.
-3. Open **Settings → Codazo**, add a provider profile with your API key, and choose your level.
+3. Open **Settings → Codazo**, add a provider profile with your API key, and choose your level. For a free option, create a Gemini API key in Google AI Studio and add a custom profile with the base URL `https://generativelanguage.googleapis.com/v1beta/openai`.
 
 To install by hand, copy `main.js`, `manifest.json`, and `styles.css` from a [release](https://github.com/InformaticsFYI/codazo-obsidian/releases) into `<vault>/.obsidian/plugins/codazo/`. Releases are signed with GitHub build attestations.
 
@@ -44,7 +44,7 @@ Requests on mobile come from the Obsidian app, so the AI service has to accept r
 
 ## Disclosures
 
-**Payment.** Codazo is free and has no paid tier. AI features run on a provider account that you supply. Hosted providers such as OpenAI and Ollama Cloud charge for use according to their own pricing. A local model on your own computer costs nothing to run.
+**Payment.** Codazo is free and has no paid tier. AI features run on a provider account that you supply. Hosted providers such as OpenAI and Ollama Cloud charge for use according to their own pricing. Google's Gemini API has a free tier that works with Codazo through its OpenAI-compatible address; read Google's terms for how free-tier content is used. A local model on your own computer costs nothing to run.
 
 **Accounts.** No Codazo account exists. To use AI features you need an account and API key with the provider you choose, or a local OpenAI-compatible server, whose sign-in requirements depend on that server.
 
