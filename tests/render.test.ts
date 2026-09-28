@@ -87,10 +87,10 @@ test('the pane action row offers the three selection actions and the whole-note 
   const { renderActions } = await import('../src/render');
   const root = document.createElement('div');
   const ran: string[] = [];
-  renderActions(root, action => ran.push(action));
+  renderActions(root, action => ran.push(action), () => ran.push('prepare'));
   const buttons = [...root.querySelectorAll<HTMLButtonElement>('.codazo-actions button')];
   expect(buttons.map(b => [b.textContent, b.disabled])).toEqual([['Revisar la selección', false], ['Guía de estudio de la selección', false], ['Extracto de la selección', false], ['Revisar toda la nota', false]]);
-  buttons[0]!.click(); buttons[3]!.click();
-  expect(ran).toEqual(['review-selection', 'review-note']);
+  buttons[0]!.dispatchEvent(new Event('pointerdown')); buttons[0]!.click(); buttons[3]!.click();
+  expect(ran).toEqual(['prepare', 'review-selection', 'review-note']);
   expect(root.querySelector('.codazo-actions-hint')!.textContent).toBe('Selecciona texto en tu nota y elige una acción. Nada se envía hasta que lo confirmes.');
 });

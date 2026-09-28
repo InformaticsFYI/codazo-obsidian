@@ -370,15 +370,25 @@ export default class CodazoPlugin extends Plugin {
 
   /** The last active Markdown editor, even while the pane has focus. */
   private readonly selectionMemory = new SelectionMemory();
+  /** Taken at the first touch on a pane button, before the platform collapses the editor selection. */
+  private readonly tapMemory = new SelectionMemory();
 
   /** The Markdown editor the learner was working in, even while the pane has focus: Obsidian's last active editor, else the most recent note in the main area, else the only open Markdown view. */
-  private lastEditor(): { editor: Editor; file: TFile } | null {
+  private lastEditor(): { editor: Editor; file: TFile; reading: boolean } | null {
     const info = this.app.workspace.activeEditor;
-    if (info?.editor && info.file) return { editor: info.editor, file: info.file };
+    if (info?.editor && info.file) return { editor: info.editor, file: info.file, reading: info instanceof MarkdownView && info.getMode() === 'preview' };
     const recent = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)?.view;
-    if (recent instanceof MarkdownView && recent.file) return { editor: recent.editor, file: recent.file };
+    if (recent instanceof MarkdownView && recent.file) return { editor: recent.editor, file: recent.file, reading: recent.getMode() === 'preview' };
     const views = this.app.workspace.getLeavesOfType('markdown').map(leaf => leaf.view).filter((view): view is MarkdownView => view instanceof MarkdownView && view.file !== null);
-    return views.length === 1 && views[0]?.file ? { editor: views[0].editor, file: views[0].file } : null;
+    const only = views.length === 1 ? views[0] : undefined;
+    return only?.file ? { editor: only.editor, file: only.file, reading: only.getMode() === 'preview' } : null;
+  }
+
+  prepareSelection(): void {
+    const target = this.lastEditor();
+    if (!target) return;
+    const text = target.editor.getSelection();
+    if (text.length) this.tapMemory.last = { from: target.editor.posToOffset(target.editor.getCursor('from')), to: target.editor.posToOffset(target.editor.getCursor('to')), text };
   }
 
   runPaneAction(action: PaneAction): void {
@@ -387,8 +397,10 @@ export default class CodazoPlugin extends Plugin {
     const { editor, file } = target;
     if (action === 'review-note') { this.openReviewModal(editor, file, 'note', 'review'); return; }
     if (!editor.getSelection().length) {
-      // Tapping the pane collapsed the selection: restore the last one if the note still holds that text there.
-      const remembered = recallSelection(this.selectionMemory, (from, to) => editor.getRange(editor.offsetToPos(from), editor.offsetToPos(to)));
+      if (target.reading) { new Notice(t().actionsReadingView); return; }
+      // Tapping the pane collapsed the selection: restore the one taken at the first touch, else the editor's last non-empty one, if the note still holds that text there.
+      const textAt = (from: number, to: number) => editor.getRange(editor.offsetToPos(from), editor.offsetToPos(to));
+      const remembered = recallSelection(this.tapMemory, textAt) ?? recallSelection(this.selectionMemory, textAt);
       if (!remembered) { new Notice(t().actionsNoSelection); return; }
       editor.setSelection(editor.offsetToPos(remembered.from), editor.offsetToPos(remembered.to));
     }

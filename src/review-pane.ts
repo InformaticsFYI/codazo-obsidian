@@ -40,7 +40,7 @@ export class CodazoReviewView extends ItemView {
     tab('result', t().tabResult);
     tab('index', t().tabIndex);
     if (this.plugin.state.view === 'index') { this.renderIndex(root); return; }
-    renderActions(header, action => this.plugin.runPaneAction(action));
+    renderActions(header, action => this.plugin.runPaneAction(action), () => this.plugin.prepareSelection());
     if (!session) {
       el(header, 'p', { cls: 'codazo-eyebrow', text: t().paneEyebrow });
       el(header, 'p', { text: t().paneEmpty });
