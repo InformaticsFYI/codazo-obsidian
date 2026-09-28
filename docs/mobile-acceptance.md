@@ -43,7 +43,7 @@ For each check, record pass or fail, and what you saw when it failed.
 12. In Reading view, tap an inline translation. The English appears beside the word. Tap again to hide it.
 13. In Live Preview, tap an inline translation. The raw `{palabra|translation}` text appears for editing.
 14. In the pane, tap a marked phrase in **Tu texto**. The observation shows below the legend.
-15. Select text, open the Codazo pane from the ribbon, and tap **Revisar la selección** at the top of the pane. The confirmation dialog shows the selected text. Then tap it with nothing selected: a notice asks you to select text, and nothing is sent.
+15. Select text, open the Codazo pane from the ribbon, and tap **Revisar la selección** at the top of the pane. The tap may clear the highlight in the note; the confirmation dialog must still show exactly the text you selected. Cancel, edit the note inside that passage, tap the button again: a notice asks you to select text, and nothing is sent. Then tap it with nothing ever selected in a fresh note: the same notice.
 16. Long-press a selection in the editor. Record whether the Codazo menu sections appear. They are not expected to; the pane buttons, the command palette, and the mobile toolbar are the supported routes.
 
 ### Layout

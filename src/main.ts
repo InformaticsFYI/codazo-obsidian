@@ -7,6 +7,7 @@ import type { Review } from '../shared/lib/review/schema';
 import { availablePath, containedFolder, excerptNoteContent, parseSavedReview, reviewNoteContent, revisionNoteContent, sanitizeBasename, studyNoteContent, type ArtifactLinks } from './artifacts';
 import { excerptPolicy } from './excerpt';
 import { HighlightStore, highlightExtension } from './editor-extension';
+import { SelectionMemory, recallSelection, selectionMemoryExtension } from './selection-memory';
 import { collectIndex, frontmatterString, type IndexEntry } from './index-view';
 import { CODAZO_ICON, CODAZO_ICON_ID } from './icon';
 import { findIntentCallout, frontmatterEnd, INTENT_PLACEHOLDER, INTENT_PLACEHOLDER_OFFSET, INTENT_TEMPLATE, stripCallout } from './intent';
@@ -77,6 +78,7 @@ export default class CodazoPlugin extends Plugin {
     this.addRibbonIcon(CODAZO_ICON_ID, 'Codazo', () => void this.openPane());
     this.registerEditorExtension(highlightExtension(this.highlights));
     this.registerEditorExtension(glossExtension());
+    this.registerEditorExtension(selectionMemoryExtension(this.selectionMemory));
     this.registerMarkdownPostProcessor(element => glossPostProcessor(element, (el, text) => setTooltip(el, text)));
     this.addSettingTab(new CodazoSettingTab(this.app, this));
 
@@ -367,17 +369,30 @@ export default class CodazoPlugin extends Plugin {
   }
 
   /** The last active Markdown editor, even while the pane has focus. */
-  editorState(): { hasNote: boolean } {
+  private readonly selectionMemory = new SelectionMemory();
+
+  /** The Markdown editor the learner was working in, even while the pane has focus: Obsidian's last active editor, else the most recent note in the main area, else the only open Markdown view. */
+  private lastEditor(): { editor: Editor; file: TFile } | null {
     const info = this.app.workspace.activeEditor;
-    return { hasNote: info?.editor !== undefined && info.file !== null };
+    if (info?.editor && info.file) return { editor: info.editor, file: info.file };
+    const recent = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)?.view;
+    if (recent instanceof MarkdownView && recent.file) return { editor: recent.editor, file: recent.file };
+    const views = this.app.workspace.getLeavesOfType('markdown').map(leaf => leaf.view).filter((view): view is MarkdownView => view instanceof MarkdownView && view.file !== null);
+    return views.length === 1 && views[0]?.file ? { editor: views[0].editor, file: views[0].file } : null;
   }
 
   runPaneAction(action: PaneAction): void {
-    const info = this.app.workspace.activeEditor;
-    if (!info?.editor || !info.file) { new Notice(t().actionsNoNote); return; }
-    if (action === 'review-note') { this.openReviewModal(info.editor, info.file, 'note', 'review'); return; }
-    if (!info.editor.getSelection().length) { new Notice(t().actionsNoSelection); return; }
-    this.openReviewModal(info.editor, info.file, 'selection', action === 'study-selection' ? 'study' : action === 'excerpt-selection' ? 'excerpt' : 'review');
+    const target = this.lastEditor();
+    if (!target) { new Notice(t().actionsNoNote); return; }
+    const { editor, file } = target;
+    if (action === 'review-note') { this.openReviewModal(editor, file, 'note', 'review'); return; }
+    if (!editor.getSelection().length) {
+      // Tapping the pane collapsed the selection: restore the last one if the note still holds that text there.
+      const remembered = recallSelection(this.selectionMemory, (from, to) => editor.getRange(editor.offsetToPos(from), editor.offsetToPos(to)));
+      if (!remembered) { new Notice(t().actionsNoSelection); return; }
+      editor.setSelection(editor.offsetToPos(remembered.from), editor.offsetToPos(remembered.to));
+    }
+    this.openReviewModal(editor, file, 'selection', action === 'study-selection' ? 'study' : action === 'excerpt-selection' ? 'excerpt' : 'review');
   }
 
   revealAnnotation(id: string): void {
