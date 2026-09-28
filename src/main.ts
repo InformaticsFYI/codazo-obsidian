@@ -1,4 +1,4 @@
-import { Editor, MarkdownView, Modal, Notice, Plugin, Setting, TFile, addIcon, normalizePath, requireApiVersion, setTooltip } from 'obsidian';
+import { Editor, MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, addIcon, normalizePath, requireApiVersion, setTooltip } from 'obsidian';
 import { REVIEW_EXPORT_FILENAME, REVIEW_JSON_FILENAME, reviewHtml, reviewJson } from '../shared/lib/export/download-review';
 import { LocalReviewService } from '../shared/lib/review/local-review-service';
 import { createRequestId } from '../shared/lib/review/request-id';
@@ -7,6 +7,7 @@ import type { Review } from '../shared/lib/review/schema';
 import { availablePath, containedFolder, excerptNoteContent, parseSavedReview, reviewNoteContent, revisionNoteContent, sanitizeBasename, studyNoteContent, type ArtifactLinks } from './artifacts';
 import { excerptPolicy } from './excerpt';
 import { HighlightStore, highlightExtension } from './editor-extension';
+import { SelectionMemory, recallSelection, selectionMemoryExtension } from './selection-memory';
 import { collectIndex, frontmatterString, type IndexEntry } from './index-view';
 import { CODAZO_ICON, CODAZO_ICON_ID } from './icon';
 import { findIntentCallout, frontmatterEnd, INTENT_PLACEHOLDER, INTENT_PLACEHOLDER_OFFSET, INTENT_TEMPLATE, stripCallout } from './intent';
@@ -17,10 +18,12 @@ import { ReviewModal, type ReviewMode, type ReviewRequestChoice } from './review
 import { STUDY_POLICY } from './study-policy';
 import { el } from './render';
 import { CodazoReviewView, VIEW_TYPE } from './review-pane';
+import type { PaneAction } from './render';
 import { locateSource, sha256Hex, type ReviewSession, type SourceLocation } from './session';
 import { ProfileStore, profileFingerprint, profileLabel } from './profiles';
 import { createSecretVault, migrateLegacyProvider, parsePluginData, probeSecretEncryption, profileSecretId, recordPersistence, type PluginData } from './settings-runtime';
 import { createNodeFetch } from './node-transport';
+import { createWebFetch } from './web-transport';
 import { CodazoSettingTab } from './settings-tab';
 import { setUiLanguage, t } from './strings';
 import { planStudyNotes } from './study-notes';
@@ -63,8 +66,10 @@ export default class CodazoPlugin extends Plugin {
     }
     this.profiles = new ProfileStore(recordPersistence('profiles', () => this.data, next => this.writeData(next)), id => createSecretVault(secretStorage, profileSecretId(id), webStorage), async () => secretStorage !== undefined && probeSecretEncryption(secretStorage, webStorage));
     await this.profiles.load();
-    // Desktop-only release: Node's http client never follows redirects, so a key and text can only reach the confirmed destination. No weaker fallback.
-    const transport = createNodeFetch();
+    // Neither transport follows redirects, so a key and text can only reach the confirmed destination.
+    // Desktop uses Node's http client (no cross-origin rules); iPad, iPhone, and Android use the webview's fetch with redirects refused.
+    // The choice is by platform, never by failure: a desktop without Node gets no transport rather than a switch.
+    const transport = Platform.isDesktopApp ? createNodeFetch() : createWebFetch(window);
     this.service = new LocalReviewService(this.profiles, transport ?? (async () => { throw new Error('TRANSPORT_UNAVAILABLE'); }));
     if (!transport) new Notice(t().noticeTransportUnavailable, 10000);
 
@@ -73,6 +78,7 @@ export default class CodazoPlugin extends Plugin {
     this.addRibbonIcon(CODAZO_ICON_ID, 'Codazo', () => void this.openPane());
     this.registerEditorExtension(highlightExtension(this.highlights));
     this.registerEditorExtension(glossExtension());
+    this.registerEditorExtension(selectionMemoryExtension(this.selectionMemory));
     this.registerMarkdownPostProcessor(element => glossPostProcessor(element, (el, text) => setTooltip(el, text)));
     this.addSettingTab(new CodazoSettingTab(this.app, this));
 
@@ -268,7 +274,7 @@ export default class CodazoPlugin extends Plugin {
       else if (this.data.autoSaveReviews) await (session.kind === 'study' ? this.saveStudyNote(session) : this.saveReviewNote(session));
       if (this.data.autoStudyNotes) await this.saveStudyItemNotes(session);
     } catch (error) {
-      this.setState({ status: { kind: 'error', message: describeError(error), label } });
+      this.setState({ status: { kind: 'error', message: describeError(error, { mobile: Platform.isMobileApp }), label } });
     } finally { this.activeRequestId = null; }
   }
 
@@ -362,6 +368,45 @@ export default class CodazoPlugin extends Plugin {
     this.setState({ freshness: location });
   }
 
+  /** The last active Markdown editor, even while the pane has focus. */
+  private readonly selectionMemory = new SelectionMemory();
+  /** Taken at the first touch on a pane button, before the platform collapses the editor selection. */
+  private readonly tapMemory = new SelectionMemory();
+
+  /** The Markdown editor the learner was working in, even while the pane has focus: Obsidian's last active editor, else the most recent note in the main area, else the only open Markdown view. */
+  private lastEditor(): { editor: Editor; file: TFile; reading: boolean } | null {
+    const info = this.app.workspace.activeEditor;
+    if (info?.editor && info.file) return { editor: info.editor, file: info.file, reading: info instanceof MarkdownView && info.getMode() === 'preview' };
+    const recent = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)?.view;
+    if (recent instanceof MarkdownView && recent.file) return { editor: recent.editor, file: recent.file, reading: recent.getMode() === 'preview' };
+    const views = this.app.workspace.getLeavesOfType('markdown').map(leaf => leaf.view).filter((view): view is MarkdownView => view instanceof MarkdownView && view.file !== null);
+    const only = views.length === 1 ? views[0] : undefined;
+    return only?.file ? { editor: only.editor, file: only.file, reading: only.getMode() === 'preview' } : null;
+  }
+
+  prepareSelection(): void {
+    const target = this.lastEditor();
+    if (!target) return;
+    const text = target.editor.getSelection();
+    if (text.length) this.tapMemory.last = { from: target.editor.posToOffset(target.editor.getCursor('from')), to: target.editor.posToOffset(target.editor.getCursor('to')), text };
+  }
+
+  runPaneAction(action: PaneAction): void {
+    const target = this.lastEditor();
+    if (!target) { new Notice(t().actionsNoNote); return; }
+    const { editor, file } = target;
+    if (action === 'review-note') { this.openReviewModal(editor, file, 'note', 'review'); return; }
+    if (!editor.getSelection().length) {
+      if (target.reading) { new Notice(t().actionsReadingView); return; }
+      // Tapping the pane collapsed the selection: restore the one taken at the first touch, else the editor's last non-empty one, if the note still holds that text there.
+      const textAt = (from: number, to: number) => editor.getRange(editor.offsetToPos(from), editor.offsetToPos(to));
+      const remembered = recallSelection(this.tapMemory, textAt) ?? recallSelection(this.selectionMemory, textAt);
+      if (!remembered) { new Notice(t().actionsNoSelection); return; }
+      editor.setSelection(editor.offsetToPos(remembered.from), editor.offsetToPos(remembered.to));
+    }
+    this.openReviewModal(editor, file, 'selection', action === 'study-selection' ? 'study' : action === 'excerpt-selection' ? 'excerpt' : 'review');
+  }
+
   revealAnnotation(id: string): void {
     const session = this.state.session;
     if (!session || this.state.freshness.status === 'stale' || this.state.freshness.status === 'unavailable') return;
@@ -374,6 +419,8 @@ export default class CodazoPlugin extends Plugin {
     const to = view.editor.offsetToPos(base + span.end);
     view.editor.setSelection(from, to);
     view.editor.scrollIntoView({ from, to }, true);
+    // On a phone the pane is a drawer over the note; close it so the selected phrase is visible.
+    if (Platform.isPhone) this.app.workspace.rightSplit.collapse();
   }
 
   // ----- artifacts -----

@@ -32,7 +32,7 @@ export function glossExtension(): Extension {
   return [field];
 }
 
-/** Reading view: replace `{term|gloss}` inside text nodes with an underlined span carrying the tooltip. */
+/** Reading view: replace `{term|gloss}` inside text nodes with an underlined span carrying the tooltip; tapping it toggles the translation inline. */
 export function glossPostProcessor(element: HTMLElement, setTooltip: (el: HTMLElement, text: string) => void): void {
   const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const nodes: Text[] = [];
@@ -45,8 +45,10 @@ export function glossPostProcessor(element: HTMLElement, setTooltip: (el: HTMLEl
     let cursor = 0;
     for (const gloss of glosses) {
       if (gloss.start > cursor) parts.push(node.data.slice(cursor, gloss.start));
-      const span = element.createSpan({ cls: 'codazo-gloss', text: gloss.term, attr: { 'aria-label': gloss.gloss } });
+      const span = element.createSpan({ cls: 'codazo-gloss', text: gloss.term, attr: { 'aria-label': gloss.gloss, 'data-gloss': gloss.gloss } });
       setTooltip(span, gloss.gloss);
+      // Touch screens have no hover: a tap shows the translation beside the word, and another tap hides it.
+      span.addEventListener('click', () => span.classList.toggle('codazo-gloss-open'));
       parts.push(span);
       cursor = gloss.end;
     }

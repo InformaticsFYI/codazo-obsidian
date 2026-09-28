@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { CODAZO_ICON_ID } from './icon';
 import type { IndexEntry, IndexKind } from './index-view';
 import type CodazoPlugin from './main';
-import { accordion, el, renderAnnotatedSource, renderAnnotation, renderOverview, renderStudy, renderStudySource } from './render';
+import { accordion, el, renderAnnotatedSource, renderAnnotation, renderOverview, renderStudy, renderStudySource, renderActions } from './render';
 import { t } from './strings';
 
 export const VIEW_TYPE = 'codazo-review';
@@ -40,6 +40,7 @@ export class CodazoReviewView extends ItemView {
     tab('result', t().tabResult);
     tab('index', t().tabIndex);
     if (this.plugin.state.view === 'index') { this.renderIndex(root); return; }
+    renderActions(header, action => this.plugin.runPaneAction(action), () => this.plugin.prepareSelection());
     if (!session) {
       el(header, 'p', { cls: 'codazo-eyebrow', text: t().paneEyebrow });
       el(header, 'p', { text: t().paneEmpty });

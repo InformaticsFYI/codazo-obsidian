@@ -32,3 +32,17 @@ test('reading view replaces glosses with underlined spans carrying the tooltip, 
   expect(root.querySelector('code')!.textContent).toBe('{x|y}');
   expect(tips).toEqual(['boots']);
 });
+
+test('tapping a gloss in reading view shows its translation, and tapping again hides it', () => {
+  const root = document.createElement('div');
+  root.innerHTML = '<p>Compré {botas|boots} nuevas.</p>';
+  glossPostProcessor(root, () => {});
+  const span = root.querySelector<HTMLElement>('.codazo-gloss')!;
+  expect(span.dataset.gloss).toBe('boots');
+  expect(span.classList.contains('codazo-gloss-open')).toBe(false);
+  span.click();
+  expect(span.classList.contains('codazo-gloss-open')).toBe(true);
+  span.click();
+  expect(span.classList.contains('codazo-gloss-open')).toBe(false);
+  expect(root.querySelector('p')!.textContent).toBe('Compré botas nuevas.');
+});

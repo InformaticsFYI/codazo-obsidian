@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Notice, PluginSettingTab, Setting, type SettingDefinitionItem, type SettingGroupItem } from 'obsidian';
+import { App, ButtonComponent, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, type SettingGroupItem } from 'obsidian';
 import { describeError } from './labels';
 import type CodazoPlugin from './main';
 import { DEFAULT_TIMEOUT_S, MAX_TIMEOUT_S, newProfileId, profileLabel, type Profile } from './profiles';
@@ -149,7 +149,7 @@ export class CodazoSettingTab extends PluginSettingTab {
     return [
       { name: existing ? t().sEditProfile(existing.name) : t().sNewProfile, searchable: false, render: (setting: Setting) => { setting.setHeading(); } },
       row(t().sName, undefined, s => { s.addText(text => text.setPlaceholder(t().sNamePlaceholder).setValue(draft.name).onChange(value => { draft.name = value.trim(); })); }),
-      row(t().sService, t().sServiceDesc, s => { s.addDropdown(drop => drop.addOption('openai', 'OpenAI').addOption('ollama', 'Ollama Cloud').addOption('custom', t().sCustom).setValue(draft.provider).onChange(value => { draft.provider = value as Profile['provider']; urlSetting?.settingEl.toggle(draft.provider === 'custom'); })); }),
+      row(t().sService, Platform.isMobileApp ? `${t().sServiceDesc} ${t().sServiceMobile}` : t().sServiceDesc, s => { s.addDropdown(drop => drop.addOption('openai', 'OpenAI').addOption('ollama', 'Ollama Cloud').addOption('custom', t().sCustom).setValue(draft.provider).onChange(value => { draft.provider = value as Profile['provider']; urlSetting?.settingEl.toggle(draft.provider === 'custom'); })); }),
       row(t().sBaseUrl, t().sBaseUrlDesc, s => { urlSetting = s; s.addText(text => text.setPlaceholder('https://…/v1').setValue(draft.baseURL ?? '').onChange(value => { draft.baseURL = value.trim() || undefined; })); s.settingEl.toggle(draft.provider === 'custom'); }),
       row(t().sModel, t().sModelDesc, s => { s.addText(text => text.setPlaceholder('model-id').setValue(draft.model).onChange(value => { draft.model = value.trim(); })); }),
       row(t().sKey, existing ? t().sKeyDescExisting : t().sKeyDescNew, s => { s.addText(text => { text.inputEl.type = 'password'; text.inputEl.autocomplete = 'off'; text.setPlaceholder(existing ? '••••••••' : 'sk-…').onChange(value => { apiKey = value.trim(); }); }); }),

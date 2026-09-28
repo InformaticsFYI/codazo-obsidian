@@ -198,3 +198,22 @@ export function renderStudy(parent: Node, review: Review, open = true): void {
     }
   }
 }
+
+export type PaneAction = 'review-selection' | 'study-selection' | 'excerpt-selection' | 'review-note';
+
+/** A way in that needs no menu: on touch screens the editor's context menu is not always reachable, so the pane offers the same actions.
+ * The buttons are always enabled. `prepare` runs at the first touch, before the platform collapses the editor selection; `run` at the click. */
+export function renderActions(parent: Node, run: (action: PaneAction) => void, prepare: () => void = () => {}): HTMLElement {
+  const row = el(parent, 'div', { cls: 'codazo-actions', attrs: { role: 'group', 'aria-label': t().actionsLabel } });
+  const actions: [PaneAction, string][] = [['review-selection', t().cmdReviewSelection], ['study-selection', t().cmdStudySelection], ['excerpt-selection', t().cmdExcerpt], ['review-note', t().cmdReviewNote]];
+  for (const [action, label] of actions) {
+    const button = el(row, 'button', { text: label, attrs: { type: 'button' } });
+    button.addEventListener('touchstart', prepare, { passive: true });
+    button.addEventListener('pointerdown', prepare);
+    // Keep focus, and with it the selection, in the editor where the platform honors this.
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.addEventListener('click', () => run(action));
+  }
+  el(row, 'p', { cls: 'codazo-muted codazo-actions-hint', text: t().actionsHint });
+  return row;
+}

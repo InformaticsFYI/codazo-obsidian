@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Codazo now runs on iPad and iPhone, and should run on Android, which has not been tested yet. Minimum Obsidian stays 1.11.5. Desktop behavior is unchanged.
+
+- On mobile, requests use the Obsidian app's own connection with redirects refused, so the key and text still reach only the confirmed destination. Obsidian's `requestUrl` is not used because it follows redirects.
+- A server that refuses requests from the Obsidian app, or cannot be reached, now reports the failure as `(network)`. On mobile the message explains the likely cause.
+- The pane has buttons for review, study guide, excerpt, and whole-note review, so a touch screen without the editor menu still has a way in.
+- Tapping an inline translation in Reading view shows it; tapping again hides it.
+- On a phone, choosing an observation closes the sidebar so the phrase is visible.
+- The redirect probe can listen on the local network (`--lan`) for testing from a device, and answers cross-origin preflight checks so the redirect itself is exercised.
 - Google's Gemini API works as a custom profile at `https://generativelanguage.googleapis.com/v1beta/openai`. OpenAI's `store: false` retention switch is now sent only to OpenAI; Google rejected the whole request over that one unknown field.
 
 ## 0.2.2
