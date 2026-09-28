@@ -43,11 +43,12 @@ For each check, record pass or fail, and what you saw when it failed.
 12. In Reading view, tap an inline translation. The English appears beside the word. Tap again to hide it.
 13. In Live Preview, tap an inline translation. The raw `{palabra|translation}` text appears for editing.
 14. In the pane, tap a marked phrase in **Tu texto**. The observation shows below the legend.
-15. Long-press a selection in the editor. Record whether the Codazo menu sections appear. If they do not, confirm the commands work from the command palette and the mobile toolbar.
+15. Select text, open the Codazo pane from the ribbon, and tap **Revisar la selección** at the top of the pane. The confirmation dialog shows the selected text. Then tap it with nothing selected: a notice asks you to select text, and nothing is sent.
+16. Long-press a selection in the editor. Record whether the Codazo menu sections appear. They are not expected to; the pane buttons, the command palette, and the mobile toolbar are the supported routes.
 
 ### Layout
 
-16. On iPhone, choose an observation. The sidebar closes and the phrase is selected in the note.
-17. On iPad, choose an observation, in both portrait and landscape. Record whether the phrase is visible, or hidden behind the sidebar.
-18. Open the **Índice** tab and load a saved review. It loads without contacting the AI service.
-19. Save a review, create a revision note, and export HTML. The files appear in the vault.
+17. On iPhone, choose an observation. The sidebar closes and the phrase is selected in the note.
+18. On iPad, choose an observation, in both portrait and landscape. Record whether the phrase is visible, or hidden behind the sidebar.
+19. Open the **Índice** tab and load a saved review. It loads without contacting the AI service.
+20. Save a review, create a revision note, and export HTML. The files appear in the vault.

@@ -9,7 +9,7 @@ Codazo never edits the note you asked it to review. Your writing stays yours.
 
 ## What you can do
 
-- **Review your writing** — select text and perform **Codazo: Review selection**, or review the whole active note. A dialog shows the exact text that will be sent and which provider will receive it. Nothing leaves your vault until you select **Revisar mi texto**.
+- **Review your writing** — select text, then perform **Codazo: Review selection** from the right-click menu, the command palette, or the buttons at the top of the Codazo pane. Or review the whole active note. A dialog shows the exact text that will be sent and which provider will receive it. Nothing leaves your vault until you select **Revisar mi texto**.
 - **Read feedback that points at your words** — the pane shows an overview, observations tied to exact phrases, vocabulary, and verbs with conjugation tables. Observations reveal in steps (suggestion, observe, think, hint, try again) so you can work it out before seeing the answer. The phrases are marked in the editor while the review is open, and selecting an observation jumps to the phrase.
 - **Build a study guide** — from a selection, get only the vocabulary and verbs above your level, without corrections.
 - **Explain something you are reading** — **Codazo: Excerpt from selection** takes a word, phrase, or paragraph someone else wrote and saves a note under `Extractos/` with its meaning, register, and the words and verbs in it.
@@ -38,7 +38,7 @@ Codazo needs Obsidian 1.11.5 or newer.
 
 ### Mobile
 
-On iPad, iPhone, and Android, Codazo's commands are in the command palette. To reach them faster, add them to the mobile toolbar in Obsidian's settings. The review pane opens in the right sidebar; on a phone, choosing an observation closes the sidebar so you can see the phrase in your note.
+On a touch screen, long-pressing selected text shows the system's copy and paste bar rather than Obsidian's menu, so the right-click route is not available. Instead, select the text, open the Codazo pane from the ribbon, and tap **Revisar la selección** at the top of the pane. On an iPad the pane can stay open beside your note. The same actions are in the command palette and can be added to the mobile toolbar in Obsidian's settings. On a phone, choosing an observation closes the sidebar so you can see the phrase in your note.
 
 Requests on mobile come from the Obsidian app, so the AI service has to accept requests from it. OpenAI and OpenRouter do. Ollama Cloud, and local servers such as LM Studio or Ollama, may refuse them unless they are set to allow cross-origin requests. When that happens, Codazo shows an error explaining it, and nothing is retried or sent anywhere else.
 

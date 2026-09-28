@@ -89,6 +89,9 @@
 @media (prefers-reduced-motion: reduce) { .codazo-pane .codazo-accordion-title::before { transition: none; } .codazo-pane .codazo-spinner { animation: none; } }
 
 /* Pane tabs and the saved-items index. */
+.codazo-actions { display: flex; flex-wrap: wrap; gap: var(--size-4-1); margin: var(--size-4-2) 0; }
+.codazo-actions button { min-height: 32px; }
+.codazo-actions-hint { flex-basis: 100%; margin: 0; font-size: var(--font-ui-smaller); }
 .codazo-tabs { display: flex; gap: var(--size-4-1); margin: var(--size-4-2) 0; border-bottom: 1px solid var(--background-modifier-border); }
 .codazo-tab { background: none; border: 0; box-shadow: none; border-radius: 0; padding: var(--size-4-1) var(--size-4-2); color: var(--text-muted); border-bottom: 2px solid transparent; }
 .codazo-tab-active { color: var(--text-normal); border-bottom-color: var(--interactive-accent); }

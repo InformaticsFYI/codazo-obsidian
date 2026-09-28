@@ -198,3 +198,19 @@ export function renderStudy(parent: Node, review: Review, open = true): void {
     }
   }
 }
+
+export type PaneAction = 'review-selection' | 'study-selection' | 'excerpt-selection' | 'review-note';
+
+/** A way in that needs no menu: on touch screens the editor's context menu is not always reachable, so the pane offers the same actions.
+ * The selection is read when a button is tapped, not when the row is drawn, so the buttons stay enabled whenever a note is open. */
+export function renderActions(parent: Node, state: { hasNote: boolean }, run: (action: PaneAction) => void): HTMLElement {
+  const row = el(parent, 'div', { cls: 'codazo-actions', attrs: { role: 'group', 'aria-label': t().actionsLabel } });
+  const actions: [PaneAction, string][] = [['review-selection', t().cmdReviewSelection], ['study-selection', t().cmdStudySelection], ['excerpt-selection', t().cmdExcerpt], ['review-note', t().cmdReviewNote]];
+  for (const [action, label] of actions) {
+    const button = el(row, 'button', { text: label, attrs: { type: 'button' } });
+    button.disabled = !state.hasNote;
+    button.addEventListener('click', () => run(action));
+  }
+  el(row, 'p', { cls: 'codazo-muted codazo-actions-hint', text: state.hasNote ? t().actionsHint : t().actionsNoNote });
+  return row;
+}

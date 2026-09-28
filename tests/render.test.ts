@@ -82,3 +82,19 @@ test('the interface language switches plugin text only; Codazo output strings ar
     expect(Object.keys(en.errors).sort()).toEqual(Object.keys(es.errors).sort());
   } finally { setUiLanguage('es'); }
 });
+
+test('the pane action row offers the three selection actions and the whole-note review, and is disabled without an open note', async () => {
+  const { renderActions } = await import('../src/render');
+  const root = document.createElement('div');
+  const ran: string[] = [];
+  renderActions(root, { hasNote: true }, action => ran.push(action));
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('.codazo-actions button')];
+  expect(buttons.map(b => [b.textContent, b.disabled])).toEqual([['Revisar la selección', false], ['Guía de estudio de la selección', false], ['Extracto de la selección', false], ['Revisar toda la nota', false]]);
+  buttons[0]!.click(); buttons[3]!.click();
+  expect(ran).toEqual(['review-selection', 'review-note']);
+  expect(root.querySelector('.codazo-actions-hint')!.textContent).toBe('Selecciona texto en tu nota y elige una acción. Nada se envía hasta que lo confirmes.');
+  root.replaceChildren();
+  renderActions(root, { hasNote: false }, () => {});
+  expect([...root.querySelectorAll<HTMLButtonElement>('.codazo-actions button')].every(b => b.disabled)).toBe(true);
+  expect(root.querySelector('.codazo-actions-hint')!.textContent).toBe('Abre una nota en Markdown para revisar.');
+});

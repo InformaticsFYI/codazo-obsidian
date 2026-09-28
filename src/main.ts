@@ -17,6 +17,7 @@ import { ReviewModal, type ReviewMode, type ReviewRequestChoice } from './review
 import { STUDY_POLICY } from './study-policy';
 import { el } from './render';
 import { CodazoReviewView, VIEW_TYPE } from './review-pane';
+import type { PaneAction } from './render';
 import { locateSource, sha256Hex, type ReviewSession, type SourceLocation } from './session';
 import { ProfileStore, profileFingerprint, profileLabel } from './profiles';
 import { createSecretVault, migrateLegacyProvider, parsePluginData, probeSecretEncryption, profileSecretId, recordPersistence, type PluginData } from './settings-runtime';
@@ -363,6 +364,20 @@ export default class CodazoPlugin extends Plugin {
     this.highlights.current = resolved?.ok && location.status !== 'stale' ? { sourceText: session.source.text, offset: location.offset, spans: resolved.value.map(span => ({ from: span.start, to: span.end, category: span.annotation.category })) } : null;
     this.app.workspace.updateOptions();
     this.setState({ freshness: location });
+  }
+
+  /** The last active Markdown editor, even while the pane has focus. */
+  editorState(): { hasNote: boolean } {
+    const info = this.app.workspace.activeEditor;
+    return { hasNote: info?.editor !== undefined && info.file !== null };
+  }
+
+  runPaneAction(action: PaneAction): void {
+    const info = this.app.workspace.activeEditor;
+    if (!info?.editor || !info.file) { new Notice(t().actionsNoNote); return; }
+    if (action === 'review-note') { this.openReviewModal(info.editor, info.file, 'note', 'review'); return; }
+    if (!info.editor.getSelection().length) { new Notice(t().actionsNoSelection); return; }
+    this.openReviewModal(info.editor, info.file, 'selection', action === 'study-selection' ? 'study' : action === 'excerpt-selection' ? 'excerpt' : 'review');
   }
 
   revealAnnotation(id: string): void {
