@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Google's Gemini API works as a custom profile at `https://generativelanguage.googleapis.com/v1beta/openai`. OpenAI's `store: false` retention switch is now sent only to OpenAI; Google rejected the whole request over that one unknown field.
+
 ## 0.2.2
 
 Validator-clean patch. Minimum Obsidian stays 1.11.5; desktop only. No change to behavior, profiles, keys, saved notes, or settings.
