@@ -10,6 +10,7 @@ Codazo now runs on iPad and iPhone, and should run on Android, which has not bee
 - Tapping an inline translation in Reading view shows it; tapping again hides it.
 - On a phone, choosing an observation closes the sidebar so the phrase is visible.
 - The redirect probe can listen on the local network (`--lan`) for testing from a device, and answers cross-origin preflight checks so the redirect itself is exercised.
+- Google's Gemini API works as a custom profile at `https://generativelanguage.googleapis.com/v1beta/openai`. OpenAI's `store: false` retention switch is now sent only to OpenAI; Google rejected the whole request over that one unknown field.
 
 ## 0.2.2
 

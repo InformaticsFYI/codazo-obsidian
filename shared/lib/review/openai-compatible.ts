@@ -108,6 +108,8 @@ export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 export function createOpenAICompatibleProvider(configuration: OpenAICompatibleConfig, fetchImpl: FetchLike): LiveReviewProvider {
   let config: OpenAICompatibleConfig;
   let endpoint: string;
+  // OpenAI's own retention switch. Other OpenAI-compatible servers ignore unknown fields or, like Google's, reject the whole request over one.
+  let openAI = false;
   try {
     config = ConfigSchema.parse(configuration);
     if (!/^https?:\/\/[^/@]+(?:\/|$)/i.test(config.baseURL)) throw new Error();
@@ -116,6 +118,7 @@ export function createOpenAICompatibleProvider(configuration: OpenAICompatibleCo
     if ((url.protocol !== 'https:' && !privateHttp) || !url.hostname || url.username || url.password || url.search || url.hash) throw new Error();
     url.pathname = url.pathname.replace(/\/$/, '') + '/chat/completions';
     endpoint = url.href;
+    openAI = url.hostname === 'api.openai.com';
   } catch { throw new OpenAICompatibleError('INVALID_CONFIG'); }
   return {
     mode: 'live',
@@ -141,7 +144,7 @@ export function createOpenAICompatibleProvider(configuration: OpenAICompatibleCo
       try { response = await deadline.wait(() => fetchImpl(endpoint, {
         method: 'POST', redirect: 'error', signal: deadline.signal,
         headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: config.model, [config.tokenLimitField ?? 'max_tokens']: config.maxOutputTokens, stream: false, store: false,
+        body: JSON.stringify({ model: config.model, [config.tokenLimitField ?? 'max_tokens']: config.maxOutputTokens, stream: false, ...(openAI ? { store: false } : {}),
           ...(config.reasoningEffort === undefined ? {} : { reasoning_effort: config.reasoningEffort }),
           ...(config.responseFormat === 'json_object' ? { response_format: { type: 'json_object' } } : {}),
           // Zod-derived JSON Schema includes refinements enforced only locally and
