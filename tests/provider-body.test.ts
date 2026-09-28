@@ -13,7 +13,7 @@ const request = { schema_version: 'codazo.request/1', request_id: 'f3f6a7c0-1111
 
 async function bodySentTo(baseURL: string): Promise<Record<string, unknown>> {
   let captured = '';
-  const fetchImpl = (_url: string, init: RequestInit) => { captured = String(init.body); return Promise.reject(new Error('captured')); };
+  const fetchImpl = (_url: string, init: RequestInit) => { captured = typeof init.body === 'string' ? init.body : ''; return Promise.reject(new Error('captured')); };
   const service = new LocalReviewService({ snapshot: async () => ({ baseURL, apiKey: 'DUMMY', model: 'm', maxOutputTokens: 512, timeoutMs: 5000 }) }, fetchImpl);
   await service.review(request).catch(() => {});
   return JSON.parse(captured) as Record<string, unknown>;
