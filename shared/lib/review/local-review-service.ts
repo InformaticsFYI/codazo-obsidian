@@ -1,12 +1,16 @@
-import { createOpenAICompatibleProvider, destinationLabel } from './openai-compatible';
+import { CHATGPT_RESPONSES_ENDPOINT, createOpenAICompatibleProvider, destinationLabel } from './openai-compatible';
+import { createChatGPTResponsesProvider, type ChatGPTResponsesConfig } from './chatgpt-responses';
 import { REVIEW_POLICY, type ReviewPolicy } from './prompt';
 import { ReviewRequestSchema } from '../security/input-limits';
 import { inspectJSONValue, LIMITS } from './limits';
 import { validateReview, validateSource } from './validate';
 import type { FetchLike, OpenAICompatibleConfig } from './openai-compatible';
 
+/** A dispatch configuration: an OpenAI-compatible endpoint with the learner's key, or ChatGPT plan usage with a signed-in access token. */
+export type ReviewConfiguration = OpenAICompatibleConfig | ChatGPTResponsesConfig;
+const isChatGPT = (configuration: ReviewConfiguration): configuration is ChatGPTResponsesConfig => 'kind' in configuration && configuration.kind === 'chatgpt';
 /** Whatever holds the learner's provider configuration in the app's one trusted process. */
-export interface ReviewSettingsSource { snapshot(): Promise<OpenAICompatibleConfig> }
+export interface ReviewSettingsSource { snapshot(): Promise<ReviewConfiguration> }
 
 /**
  * Review dispatch for local application targets that hold the learner's own provider key.
@@ -42,13 +46,14 @@ export class LocalReviewService {
     const configuration = await settings.snapshot();
     if (active.controller.signal.aborted) throw new Error('CANCELLED');
     this.seen.add(request.request_id);
-    const provider = createOpenAICompatibleProvider(configuration, this.fetchImpl);
+    const provider = isChatGPT(configuration) ? createChatGPTResponsesProvider(configuration, this.fetchImpl) : createOpenAICompatibleProvider(configuration, this.fetchImpl);
     const result = await provider.generate({ policy, learnerData: JSON.stringify(source.value), preferences: { level: request.level, locale: request.locale }, signal: active.controller.signal });
     if (active.controller.signal.aborted) throw new Error('CANCELLED');
     if (result.completion !== 'complete') throw new Error('PROVIDER_REFUSED');
     const review = validateReview(JSON.parse(result.text), source.value);
     if (!review.ok) throw new Error('INVALID_OUTPUT');
-    return { review: review.value, generatedBy: `Live AI feedback — ${destinationLabel(configuration.baseURL)} · ${configuration.model}; AI may be wrong` };
+    const destination = isChatGPT(configuration) ? CHATGPT_RESPONSES_ENDPOINT : configuration.baseURL;
+    return { review: review.value, generatedBy: `Live AI feedback — ${destinationLabel(destination)} · ${configuration.model}; AI may be wrong` };
     } finally { if (this.active === active) this.active = null; }
   }
 }

@@ -115,7 +115,7 @@ test.each(['session', 'persistent'] as const)('N1: editing an old persistent pro
 
   // Explicit replacement permits session use without recovering the old vault value.
   await store.save({ ...old, storage: 'session' }, 'DUMMY-REPLACEMENT-KEY');
-  expect((await store.snapshot()).apiKey).toBe('DUMMY-REPLACEMENT-KEY');
+  expect((await store.snapshot() as { apiKey?: string }).apiKey).toBe('DUMMY-REPLACEMENT-KEY');
   expect(read).not.toHaveBeenCalled();
 });
 
@@ -139,7 +139,7 @@ test('N1: persistent mode is refused when Secret Storage stores plaintext; allow
   const secure = { on: true };
   const store = new ProfileStore(recordPersistence('profiles', () => data, async next => { data = next; }), id => createSecretVault(encrypted, profileSecretId(id), asStore(encStore)), async () => secure.on);
   await store.save({ id: 'a', provider: 'openai', ...base, storage: 'persistent' }, 'KEY-A');
-  expect((await store.snapshot()).apiKey).toBe('KEY-A');
+  expect((await store.snapshot() as { apiKey?: string }).apiKey).toBe('KEY-A');
   secure.on = false; // encryption became unavailable (e.g. keychain locked/missing) after the key was persisted
   await expect(store.snapshot()).rejects.toThrow('SECURE_STORAGE_UNAVAILABLE');
   expect(await store.hasKey('a')).toBe(false);

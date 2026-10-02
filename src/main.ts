@@ -13,7 +13,10 @@ import { CODAZO_ICON, CODAZO_ICON_ID } from './icon';
 import { findIntentCallout, frontmatterEnd, INTENT_PLACEHOLDER, INTENT_PLACEHOLDER_OFFSET, INTENT_TEMPLATE, stripCallout } from './intent';
 import { makeGloss, stripGlosses } from './gloss';
 import { glossExtension, glossPostProcessor } from './gloss-extension';
-import { describeError } from './labels';
+import { describeError, isPlanLimit } from './labels';
+import { CHATGPT_USAGE_URL, refreshConnection, signIn, type ChatGPTConnection, type OAuthHost } from './chatgpt/oauth';
+import { createLoopbackListener } from './chatgpt/loopback';
+import { hostRequire } from './node-transport';
 import { ReviewModal, type ReviewMode, type ReviewRequestChoice } from './review-modal';
 import { STUDY_POLICY } from './study-policy';
 import { el } from './render';
@@ -29,7 +32,9 @@ import { setUiLanguage, t } from './strings';
 import { planStudyNotes } from './study-notes';
 
 /** Status bar at the top of the pane. `label` is the active profile (name · destination · model). */
-export type PaneStatus = { kind: 'idle' } | { kind: 'in_flight'; label: string; mode: 'review' | 'study' | 'excerpt'; startedAt: number } | { kind: 'error'; message: string; label?: string } | { kind: 'success'; message: string; label: string };
+/** An error may carry one action the learner can take, such as opening ChatGPT's usage settings. */
+export type StatusAction = { label: string; url: string };
+export type PaneStatus = { kind: 'idle' } | { kind: 'in_flight'; label: string; mode: 'review' | 'study' | 'excerpt'; startedAt: number } | { kind: 'error'; message: string; label?: string; action?: StatusAction } | { kind: 'success'; message: string; label: string };
 export type Freshness = SourceLocation | { status: 'unavailable' };
 export type PaneView = 'result' | 'index';
 export type PluginState = { session: ReviewSession | null; status: PaneStatus; freshness: Freshness; view: PaneView };
@@ -49,6 +54,29 @@ export default class CodazoPlugin extends Plugin {
   /** One in-memory session per note, keyed by path; the pane follows the active note. Bounded; nothing persists. */
   private sessions = new Map<string, ReviewSession>();
   private static readonly MAX_SESSIONS = 50;
+  private oauthHost: OAuthHost | null = null;
+  private signingIn: AbortController | null = null;
+
+  /** Only https links to places the plugin names itself; opened in the system browser. */
+  openExternal(url: string): void {
+    if (!/^https:\/\//.test(url)) return;
+    window.open(url);
+  }
+
+  /** Sign in with ChatGPT for a profile being edited. One sign-in at a time; five minutes to finish in the browser. */
+  async signInWithChatGPT(previous?: ChatGPTConnection): Promise<ChatGPTConnection> {
+    if (!Platform.isDesktopApp || !this.oauthHost) throw new Error('SIGNIN_DESKTOP_ONLY');
+    if (this.signingIn) throw new Error('IN_FLIGHT');
+    this.signingIn = new AbortController();
+    const timer = window.setTimeout(() => this.signingIn?.abort(), 5 * 60_000);
+    try {
+      const connection = await signIn(this.oauthHost, { appName: 'Codazo', ...(previous ? { previous } : {}), signal: this.signingIn.signal });
+      if (!this.data.chatgptWelcomeSeen) { new Notice(t().chatgptWelcome, 12000); await this.updateData({ chatgptWelcomeSeen: true }); }
+      return connection;
+    } finally { window.clearTimeout(timer); this.signingIn = null; }
+  }
+
+  cancelSignIn(): void { this.signingIn?.abort(); }
 
   async onload(): Promise<void> {
     this.data = parsePluginData(await this.loadData());
@@ -64,12 +92,14 @@ export default class CodazoPlugin extends Plugin {
       if (migrated?.secret) { await createSecretVault(secretStorage, profileSecretId('default'), webStorage).write(migrated.secret); await legacyVault.remove(); }
       await this.writeData({ ...this.data, provider: null, profiles: migrated?.profiles ?? null });
     }
-    this.profiles = new ProfileStore(recordPersistence('profiles', () => this.data, next => this.writeData(next)), id => createSecretVault(secretStorage, profileSecretId(id), webStorage), async () => secretStorage !== undefined && probeSecretEncryption(secretStorage, webStorage));
-    await this.profiles.load();
     // Neither transport follows redirects, so a key and text can only reach the confirmed destination.
     // Desktop uses Node's http client (no cross-origin rules); iPad, iPhone, and Android use the webview's fetch with redirects refused.
     // The choice is by platform, never by failure: a desktop without Node gets no transport rather than a switch.
     const transport = Platform.isDesktopApp ? createNodeFetch() : createWebFetch(window);
+    this.oauthHost = transport ? { fetch: transport, openBrowser: url => this.openExternal(url), listen: createLoopbackListener(Platform.isDesktopApp ? hostRequire() : null), subtle: crypto.subtle, now: () => Date.now() } : null;
+    const refresher = this.oauthHost ? { refresh: (previous: ChatGPTConnection) => refreshConnection(this.oauthHost!, previous, AbortSignal.timeout(30_000)) } : undefined;
+    this.profiles = new ProfileStore(recordPersistence('profiles', () => this.data, next => this.writeData(next)), id => createSecretVault(secretStorage, profileSecretId(id), webStorage), async () => secretStorage !== undefined && probeSecretEncryption(secretStorage, webStorage), refresher);
+    await this.profiles.load();
     this.service = new LocalReviewService(this.profiles, transport ?? (async () => { throw new Error('TRANSPORT_UNAVAILABLE'); }));
     if (!transport) new Notice(t().noticeTransportUnavailable, 10000);
 
@@ -274,7 +304,7 @@ export default class CodazoPlugin extends Plugin {
       else if (this.data.autoSaveReviews) await (session.kind === 'study' ? this.saveStudyNote(session) : this.saveReviewNote(session));
       if (this.data.autoStudyNotes) await this.saveStudyItemNotes(session);
     } catch (error) {
-      this.setState({ status: { kind: 'error', message: describeError(error, { mobile: Platform.isMobileApp }), label } });
+      this.setState({ status: { kind: 'error', message: describeError(error, { mobile: Platform.isMobileApp }), label, ...(isPlanLimit(error) ? { action: { label: t().chatgptManageUsage, url: CHATGPT_USAGE_URL } } : {}) } });
     } finally { this.activeRequestId = null; }
   }
 

@@ -12,6 +12,8 @@ export const PluginDataSchema = z.strictObject({
   profiles: z.string().max(40_000).nullable().default(null),
   /** Set once the learner has seen that saved artifacts are plain vault files. */
   storageDisclosureSeen: z.boolean(),
+  /** OpenAI asks that the plan welcome appear once, on first sign-in. */
+  chatgptWelcomeSeen: z.boolean().optional().default(false),
   /** Save every validated review into the artifact folder as soon as it arrives. Off by default; the toggle is the consent. */
   autoSaveReviews: z.boolean().default(false),
   /** Create one note per word and per verb-tense under Palabras/ and Verbos/ after every review or study guide. Existing notes are never touched. */
@@ -22,7 +24,7 @@ export const PluginDataSchema = z.strictObject({
   uiLanguage: z.enum(['es', 'en']).default('es'),
 });
 export type PluginData = z.infer<typeof PluginDataSchema>;
-export const DEFAULT_DATA: PluginData = { version: 1, artifactFolder: 'Codazo', level: 'A2', provider: null, storageDisclosureSeen: false, autoSaveReviews: false, profiles: null, uiLanguage: 'es', autoStudyNotes: false, sectionsOpen: true };
+export const DEFAULT_DATA: PluginData = { version: 1, artifactFolder: 'Codazo', level: 'A2', provider: null, storageDisclosureSeen: false, chatgptWelcomeSeen: false, autoSaveReviews: false, profiles: null, uiLanguage: 'es', autoStudyNotes: false, sectionsOpen: true };
 
 /** Unknown or damaged plugin data falls back to defaults instead of guessing. */
 export function parsePluginData(input: unknown): PluginData {
