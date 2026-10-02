@@ -2,6 +2,7 @@ import { App, ButtonComponent, Notice, Platform, PluginSettingTab, Setting, type
 import { describeError } from './labels';
 import type CodazoPlugin from './main';
 import { DEFAULT_TIMEOUT_S, MAX_TIMEOUT_S, newProfileId, profileLabel, type Profile } from './profiles';
+import { CHATGPT_USAGE_URL, type ChatGPTConnection } from './chatgpt/oauth';
 import type { PluginData } from './settings';
 import { t } from './strings';
 
@@ -118,6 +119,7 @@ export class CodazoSettingTab extends PluginSettingTab {
   // ----- shared row builders -----
 
   private profileDesc(profile: Profile): string {
+    if (profile.provider === 'chatgpt') { const who = this.plugin.profiles.connection(profile.id); return `${t().chatgptUsingPlan} · ${profile.model}${who?.email ? ` · ${who.email}` : ''}`; }
     return `${profileLabel(profile).replace(`${profile.name} · `, '')} · ${profile.storage === 'persistent' ? t().sKeyOnDevice : t().sKeySession}`;
   }
 
@@ -134,6 +136,7 @@ export class CodazoSettingTab extends PluginSettingTab {
   private profileRow(setting: Setting, profile: Profile): void {
     const store = this.plugin.profiles;
     void store.hasKey(profile.id).then(has => { if (!has) setting.setDesc(`${this.profileDesc(profile)} · ${t().sNoKeyNow}`); });
+    if (profile.provider === 'chatgpt') setting.addButton(button => button.setButtonText(t().chatgptManageUsage).onClick(() => this.plugin.openExternal(CHATGPT_USAGE_URL)));
     setting.addButton(button => button.setButtonText(t().sEdit).onClick(() => { this.editing = { kind: 'edit', id: profile.id }; this.rerender(); }));
     setting.addButton(button => destructive(button).setButtonText(t().sDelete).onClick(async () => { await store.remove(profile.id); new Notice(t().sForgot(profile.name)); this.editing = null; this.rerender(); }));
   }
@@ -143,18 +146,37 @@ export class CodazoSettingTab extends PluginSettingTab {
     const existing = this.editing?.kind === 'edit' ? this.plugin.profiles.get(this.editing.id) : null;
     const draft: Profile = existing ? { ...existing } : { id: newProfileId(), ...BLANK() };
     let apiKey = '';
+    let connection: ChatGPTConnection | undefined;
     let urlSetting: Setting | null = null;
+    const keyRows: Setting[] = [];
+    const chatgptRows: Setting[] = [];
     const secure = this.secure;
+    const showFor = (provider: Profile['provider']) => { urlSetting?.settingEl.toggle(provider === 'custom'); for (const row of keyRows) row.settingEl.toggle(provider !== 'chatgpt'); for (const row of chatgptRows) row.settingEl.toggle(provider === 'chatgpt'); };
     const row = (name: string, desc: string | undefined, render: (setting: Setting) => void): SettingGroupItem => ({ name, ...(desc ? { desc } : {}), searchable: false, render: (setting: Setting) => { render(setting); } });
     return [
       { name: existing ? t().sEditProfile(existing.name) : t().sNewProfile, searchable: false, render: (setting: Setting) => { setting.setHeading(); } },
       row(t().sName, undefined, s => { s.addText(text => text.setPlaceholder(t().sNamePlaceholder).setValue(draft.name).onChange(value => { draft.name = value.trim(); })); }),
-      row(t().sService, Platform.isMobileApp ? `${t().sServiceDesc} ${t().sServiceMobile}` : t().sServiceDesc, s => { s.addDropdown(drop => drop.addOption('openai', 'OpenAI').addOption('ollama', 'Ollama Cloud').addOption('custom', t().sCustom).setValue(draft.provider).onChange(value => { draft.provider = value as Profile['provider']; urlSetting?.settingEl.toggle(draft.provider === 'custom'); })); }),
+      row(t().sService, Platform.isMobileApp ? `${t().sServiceDesc} ${t().sServiceMobile}` : t().sServiceDesc, s => { s.addDropdown(drop => drop.addOption('openai', 'OpenAI').addOption('ollama', 'Ollama Cloud').addOption('chatgpt', t().chatgptService).addOption('custom', t().sCustom).setValue(draft.provider).onChange(value => { draft.provider = value as Profile['provider']; showFor(draft.provider); })); }),
+      row(t().chatgptContinue, Platform.isDesktopApp ? t().chatgptSignInDesc : t().chatgptMobileNote, s => {
+        chatgptRows.push(s);
+        const who = existing?.provider === 'chatgpt' ? this.plugin.profiles.connection(existing.id) : null;
+        const status = s.descEl.createDiv({ cls: 'codazo-muted', text: who ? t().chatgptSignedInAs(who.email ?? who.name ?? who.subject) : t().chatgptNotSignedIn });
+        s.addButton(button => { button.setButtonText(t().chatgptContinue).setCta().setDisabled(!Platform.isDesktopApp).onClick(async () => {
+          button.setDisabled(true); status.setText(t().chatgptSigningIn);
+          try {
+            connection = await this.plugin.signInWithChatGPT(connection);
+            status.setText(t().chatgptSignedInAs(connection.email ?? connection.name ?? connection.subject));
+            new Notice(t().chatgptSignInDone(connection.email ?? connection.subject));
+          } catch (error) { status.setText(who ? t().chatgptSignedInAs(who.email ?? who.name ?? who.subject) : t().chatgptNotSignedIn); new Notice(describeError(error)); }
+          finally { button.setDisabled(!Platform.isDesktopApp); }
+        }); });
+        s.settingEl.toggle(draft.provider === 'chatgpt');
+      }),
       row(t().sBaseUrl, t().sBaseUrlDesc, s => { urlSetting = s; s.addText(text => text.setPlaceholder('https://…/v1').setValue(draft.baseURL ?? '').onChange(value => { draft.baseURL = value.trim() || undefined; })); s.settingEl.toggle(draft.provider === 'custom'); }),
       row(t().sModel, t().sModelDesc, s => { s.addText(text => text.setPlaceholder('model-id').setValue(draft.model).onChange(value => { draft.model = value.trim(); })); }),
-      row(t().sKey, existing ? t().sKeyDescExisting : t().sKeyDescNew, s => { s.addText(text => { text.inputEl.type = 'password'; text.inputEl.autocomplete = 'off'; text.setPlaceholder(existing ? '••••••••' : 'sk-…').onChange(value => { apiKey = value.trim(); }); }); }),
-      row(t().sKeyStorage, secure ? t().sKeyStorageDesc : t().sKeyStorageNoSecure, s => { s.addDropdown(drop => { drop.addOption('session', t().sSessionOnly); if (secure) drop.addOption('persistent', t().sOnDevice); drop.setValue(secure ? draft.storage : 'session').onChange(value => { draft.storage = value as Profile['storage']; }); }); }),
-      row(t().sTokenField, undefined, s => { s.addDropdown(drop => drop.addOption('max_completion_tokens', 'max_completion_tokens').addOption('max_tokens', 'max_tokens').setValue(draft.tokenLimitField).onChange(value => { draft.tokenLimitField = value as Profile['tokenLimitField']; })); }),
+      row(t().sKey, existing ? t().sKeyDescExisting : t().sKeyDescNew, s => { keyRows.push(s); s.settingEl.toggle(draft.provider !== 'chatgpt'); s.addText(text => { text.inputEl.type = 'password'; text.inputEl.autocomplete = 'off'; text.setPlaceholder(existing ? '••••••••' : 'sk-…').onChange(value => { apiKey = value.trim(); }); }); }),
+      row(t().sKeyStorage, secure ? (draft.provider === 'chatgpt' ? t().chatgptStorageDesc : t().sKeyStorageDesc) : t().sKeyStorageNoSecure, s => { s.addDropdown(drop => { drop.addOption('session', t().sSessionOnly); if (secure) drop.addOption('persistent', t().sOnDevice); drop.setValue(secure ? draft.storage : 'session').onChange(value => { draft.storage = value as Profile['storage']; }); }); }),
+      row(t().sTokenField, undefined, s => { keyRows.push(s); s.settingEl.toggle(draft.provider !== 'chatgpt'); s.addDropdown(drop => drop.addOption('max_completion_tokens', 'max_completion_tokens').addOption('max_tokens', 'max_tokens').setValue(draft.tokenLimitField).onChange(value => { draft.tokenLimitField = value as Profile['tokenLimitField']; })); }),
       row(t().sResponseFormat, t().sResponseFormatDesc, s => { s.addDropdown(drop => drop.addOption('json_object', 'json_object').addOption('json_schema', 'json_schema').addOption('prompt', t().sPromptOnly).setValue(draft.responseFormat).onChange(value => { draft.responseFormat = value as Profile['responseFormat']; })); }),
       row(t().sTimeout, t().sTimeoutDesc(5, MAX_TIMEOUT_S, DEFAULT_TIMEOUT_S), s => { s.addText(text => text.setValue(String(draft.timeoutSeconds)).onChange(value => { draft.timeoutSeconds = Number(value); })); }),
       row(t().sMaxTokens, t().sMaxTokensDesc, s => { s.addText(text => text.setValue(String(draft.maxOutputTokens)).onChange(value => { draft.maxOutputTokens = Number(value); })); }),
@@ -163,7 +185,7 @@ export class CodazoSettingTab extends PluginSettingTab {
         .addButton(button => button.setButtonText(t().sSaveProfile).setCta().onClick(async () => {
           try {
             const { baseURL, ...rest } = draft;
-            const saved = await this.plugin.profiles.save(draft.provider === 'custom' ? { ...rest, baseURL } : rest, apiKey || undefined);
+            const saved = await this.plugin.profiles.save(draft.provider === 'custom' ? { ...rest, baseURL } : rest, apiKey || undefined, connection);
             new Notice(t().sProfileSaved(profileLabel(saved)));
             if (saved.provider === 'custom' && /^http:/i.test(saved.baseURL ?? '')) new Notice(t().noticeCleartextKey, 10000);
             this.editing = null;

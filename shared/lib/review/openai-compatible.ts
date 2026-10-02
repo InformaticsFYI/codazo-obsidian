@@ -1,14 +1,17 @@
 import 'server-only';
 import { z } from 'zod';
 import { BoundaryError, createDeadline } from '../security/deadline';
-import { SCHEMA_VERSION } from './schema';
-import type { LiveReviewProvider } from './provider';
+import { SCHEMA_VERSION, type ReviewSource } from './schema';
+import type { LiveReviewProvider, ProviderInput } from './provider';
 import { LIMITS, utf8ByteLength } from './limits';
 import { validateSource } from './validate';
 import { FEEDBACK_SCHEMA_VERSION, FeedbackSchema, parseProviderOutput, ProviderOutputError } from './provider-output';
 import { parseStrictJson } from '../security/strict-json';
 import { ReviewRequestSchema } from '../security/input-limits';
 const PreferencesSchema = ReviewRequestSchema.pick({ level: true, locale: true });
+
+/** Where ChatGPT plan usage is served: the public Responses API with a Sign in with ChatGPT access token. */
+export const CHATGPT_RESPONSES_ENDPOINT = 'https://api.openai.com/v1/responses';
 
 export interface OpenAICompatibleConfig {
   readonly baseURL: string;
@@ -56,6 +59,7 @@ export function isPrivateHost(hostname: string): boolean {
 export function destinationLabel(baseURL: string): string {
   if (baseURL === 'https://api.openai.com/v1') return 'OpenAI';
   if (baseURL === 'https://ollama.com/v1') return 'Ollama Cloud';
+  if (baseURL === CHATGPT_RESPONSES_ENDPOINT) return 'ChatGPT plan';
   try { return new URL(baseURL).host; } catch { return 'custom endpoint'; }
 }
 const MAX_ENVELOPE_BYTES = 512 * 1024;
@@ -101,6 +105,27 @@ const EnvelopeSchema = z.object({
 });
 const feedbackJSONSchema = z.toJSONSchema(FeedbackSchema);
 
+/** What every live adapter sends: the validated source and preferences, the schema for this request, and the shared teaching instruction adapted to the wire contract. */
+export function prepareFeedbackRequest(input: ProviderInput): { source: ReviewSource; preferences: z.infer<typeof PreferencesSchema>; requestedSchema: Record<string, unknown>; instruction: string } {
+  let source;
+  let preferences;
+  try {
+    if (typeof input.learnerData !== 'string' || input.learnerData.length > LIMITS.requestBytes || utf8ByteLength(input.learnerData) > LIMITS.requestBytes) throw new Error();
+    const validated = validateSource(parseStrictJson(input.learnerData));
+    if (!validated.ok) throw new Error();
+    source = validated.value;
+    preferences = PreferencesSchema.parse(input.preferences);
+  } catch { throw new OpenAICompatibleError('INVALID_INPUT'); }
+  const requestedSchema = structuredClone(feedbackJSONSchema) as Record<string, unknown>;
+  const properties = requestedSchema.properties;
+  if (source.mode === 'spanish_only' && properties && typeof properties === 'object') delete (properties as Record<string, unknown>).alignment;
+  // Keep the shared teaching policy, adapting only this private wire contract.
+  const instruction = input.policy.instruction
+    .replaceAll(SCHEMA_VERSION, FEEDBACK_SCHEMA_VERSION)
+    .replace('Preserve source exactly;', 'Do not return source; the server attaches the original source. Copy anchor quotes exactly from source.text, including punctuation, whitespace, and Unicode;');
+  return { source, preferences, requestedSchema, instruction };
+}
+
 /** The host supplies the transport; Obsidian desktop passes the Node http client, never a webview fetch. */
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
@@ -123,21 +148,7 @@ export function createOpenAICompatibleProvider(configuration: OpenAICompatibleCo
   return {
     mode: 'live',
     async generate(input) {
-      let source;
-      let preferences;
-      try {
-        if (typeof input.learnerData !== 'string' || input.learnerData.length > LIMITS.requestBytes || utf8ByteLength(input.learnerData) > LIMITS.requestBytes) throw new Error();
-        const validated = validateSource(parseStrictJson(input.learnerData));
-        if (!validated.ok) throw new Error();
-        source = validated.value;
-        preferences = PreferencesSchema.parse(input.preferences);
-      } catch { throw new OpenAICompatibleError('INVALID_INPUT'); }
-      const requestedSchema = structuredClone(feedbackJSONSchema);
-      if (source.mode === 'spanish_only' && requestedSchema.properties) delete requestedSchema.properties.alignment;
-      // Keep the shared teaching policy, adapting only this private wire contract.
-      const instruction = input.policy.instruction
-        .replaceAll(SCHEMA_VERSION, FEEDBACK_SCHEMA_VERSION)
-        .replace('Preserve source exactly;', 'Do not return source; the server attaches the original source. Copy anchor quotes exactly from source.text, including punctuation, whitespace, and Unicode;');
+      const { source, preferences, requestedSchema, instruction } = prepareFeedbackRequest(input);
       const deadline = createDeadline(config.timeoutMs, input.signal);
       try {
       let response: Response;

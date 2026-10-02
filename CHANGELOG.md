@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Use your ChatGPT plan.** On desktop, a profile can sign in with ChatGPT instead of holding an API key. Sign-in happens in the browser at OpenAI with PKCE; Codazo keeps the granted permission where API keys live and renews it before it expires. Reviews go to the Responses API as non-stored streams. The pane labels plan usage and links to **Manage usage**; a used-up allowance is reported with that link, never as feedback.
 Codazo now runs on iPad and iPhone, and should run on Android, which has not been tested yet. Minimum Obsidian stays 1.11.5. Desktop behavior is unchanged.
 
 - On mobile, requests use the Obsidian app's own connection with redirects refused, so the key and text still reach only the confirmed destination. Obsidian's `requestUrl` is not used because it follows redirects.

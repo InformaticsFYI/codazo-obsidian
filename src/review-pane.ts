@@ -1,3 +1,4 @@
+import { CHATGPT_USAGE_URL } from './chatgpt/oauth';
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { CODAZO_ICON_ID } from './icon';
 import type { IndexEntry, IndexKind } from './index-view';
@@ -31,6 +32,7 @@ export class CodazoReviewView extends ItemView {
       const body = el(bar, 'div', { cls: 'codazo-bar-body' });
       el(body, 'p', { cls: 'codazo-bar-message', text: status.kind === 'in_flight' ? (status.mode === 'study' ? t().statusStudying : status.mode === 'excerpt' ? t().statusExcerpting : t().statusReviewing) : status.kind === 'success' ? status.message : `${t().statusFailed} ${status.message}` });
       if (status.label) el(body, 'p', { cls: 'codazo-bar-label', text: status.label });
+      if (status.kind === 'error' && status.action) { const act = el(body, 'button', { cls: 'codazo-link', text: status.action.label, attrs: { type: 'button' } }); const { url } = status.action; act.addEventListener('click', () => this.plugin.openExternal(url)); }
       if (status.kind === 'in_flight') { const cancel = el(bar, 'button', { text: t().cancel, attrs: { type: 'button' } }); cancel.addEventListener('click', () => this.plugin.cancelReview()); }
       else { const close = el(bar, 'button', { cls: 'codazo-bar-close', text: '×', attrs: { type: 'button', 'aria-label': t().dismiss } }); close.addEventListener('click', () => this.plugin.dismissStatus()); }
     }
@@ -49,7 +51,11 @@ export class CodazoReviewView extends ItemView {
       return;
     }
     // The banner names the profile while it is showing; once dismissed, one small line keeps the provenance visible.
-    if (status.kind === 'idle') el(header, 'p', { cls: 'codazo-muted codazo-provenance', text: `${session.provider} · ${session.model} · ${new Date(session.reviewedAt).toLocaleString()}`, attrs: { title: `${session.generatedBy} · ${t().paneNote(session.notePath)}` } });
+    if (status.kind === 'idle') {
+      const provenance = el(header, 'p', { cls: 'codazo-muted codazo-provenance', text: `${session.provider === 'chatgpt' ? t().chatgptUsingPlan : session.provider} · ${session.model} · ${new Date(session.reviewedAt).toLocaleString()}`, attrs: { title: `${session.generatedBy} · ${t().paneNote(session.notePath)}` } });
+      // OpenAI asks that plan usage be labeled where it happens, with a way to manage it.
+      if (session.provider === 'chatgpt') { provenance.appendChild(provenance.ownerDocument.createTextNode(' · ')); const manage = el(provenance, 'button', { cls: 'codazo-link', text: t().chatgptManageUsage, attrs: { type: 'button' } }); manage.addEventListener('click', () => this.plugin.openExternal(CHATGPT_USAGE_URL)); }
+    }
     if (freshness.status === 'stale') el(header, 'p', { cls: 'codazo-warning', text: freshness.reason === 'ambiguous' ? t().paneStaleAmbiguous : t().paneStaleMissing });
     else if (freshness.status === 'unavailable') el(header, 'p', { cls: 'codazo-warning', text: t().paneUnavailable });
 

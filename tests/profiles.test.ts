@@ -44,7 +44,7 @@ test('several profiles, one active; keys live per profile in Secret Storage, nev
   const reloaded = new ProfileStore(recordPersistence('profiles', w.data, async () => {}), id => createSecretVault({ getSecret: id => w.secrets.get(id) ?? null, setSecret: () => {} }, profileSecretId(id)), async () => true);
   await reloaded.load();
   expect(reloaded.active()?.id).toBe('b');
-  expect((await reloaded.snapshot()).apiKey).toBe('KEY-B');
+  expect((await reloaded.snapshot() as { apiKey?: string }).apiKey).toBe('KEY-B');
   await w.store.remove('b');
   expect(w.store.active()).toBeNull();
   expect(w.secrets.get('codazo-provider-key-b')).toBe('');
@@ -82,7 +82,7 @@ test('a custom profile with a bad URL or a persistent key without Secret Storage
   const insecure = world(false);
   await expect(insecure.store.save({ id: 'd', provider: 'openai', ...base }, 'K')).rejects.toThrow('SECURE_STORAGE_UNAVAILABLE');
   await insecure.store.save({ id: 'd', provider: 'openai', ...base, storage: 'session' }, 'K');
-  expect((await insecure.store.snapshot()).apiKey).toBe('K');
+  expect((await insecure.store.snapshot() as { apiKey?: string }).apiKey).toBe('K');
   expect(insecure.data().profiles).not.toContain('K');
 });
 
